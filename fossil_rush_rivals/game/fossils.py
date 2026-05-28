@@ -74,13 +74,13 @@ SHAPES = [
     [(0, 0), (1, 0), (0, 1)],
 ]
 
-FULL_SET_CHANCE = 0.30
+FULL_SET_CHANCE = 0.45
 DECOY_COUNT = 8
 
 
 def build_templates(rng) -> List[FossilTemplate]:
     templates: List[FossilTemplate] = []
-    common = rng.sample(COMMON_FOSSILS, k=6)
+    common = rng.sample(COMMON_FOSSILS, k=8)
     for fossil_id, name, _rarity, _base_value in common:
         offsets = rng.choice(SHAPES)
         templates.append(
@@ -148,6 +148,10 @@ def place_fossils(grid: Grid, rng) -> Dict[str, Fossil]:
                 if (x, y) in occupied:
                     valid = False
                     break
+                tile = grid.get_tile(x, y)
+                if tile is None:
+                    valid = False
+                    break
                 coords.append((x, y))
             if not valid:
                 continue
@@ -181,6 +185,8 @@ def _place_decoys(grid: Grid, rng, occupied: set[tuple[int, int]]) -> None:
     empty_tiles: List[Tile] = []
     for row in grid.tiles:
         for tile in row:
+            if not tile.active:
+                continue
             if (tile.x, tile.y) not in occupied:
                 empty_tiles.append(tile)
 

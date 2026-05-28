@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+ai_training/ai_training_plan.md
+ai_training/training_run_log.md
+ai_training/training_logs.txt

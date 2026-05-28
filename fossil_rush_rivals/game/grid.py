@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+import math
 import random
 
 from . import config
@@ -61,17 +62,24 @@ class Grid:
     def _apply_active_shape(self) -> None:
         rng = random.Random(self.seed)
         target = min(config.ACTIVE_TILE_COUNT, config.GRID_ROWS * config.GRID_COLS)
-        center_x = config.GRID_COLS // 2
-        center_y = config.GRID_ROWS // 2
-        active = {(center_x, center_y)}
+        center_x = (config.GRID_COLS - 1) / 2
+        center_y = (config.GRID_ROWS - 1) / 2
+        radius = math.sqrt(target / math.pi)
 
-        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-        while len(active) < target:
-            x, y = rng.choice(list(active))
-            dx, dy = rng.choice(directions)
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < config.GRID_COLS and 0 <= ny < config.GRID_ROWS:
-                active.add((nx, ny))
+        active = set()
+        inner = max(radius - 0.75, 0.0)
+        outer = radius + 0.75
+        for y in range(config.GRID_ROWS):
+            for x in range(config.GRID_COLS):
+                dx = x - center_x
+                dy = y - center_y
+                distance = math.hypot(dx, dy)
+                if distance <= inner:
+                    active.add((x, y))
+                elif distance <= outer:
+                    edge_weight = max(0.0, (outer - distance) / (outer - inner))
+                    if rng.random() < edge_weight:
+                        active.add((x, y))
 
         active = self._fill_holes(active)
         active = self._remove_spikes(active)

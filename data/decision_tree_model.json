@@ -1,0 +1,41 @@
+{
+  "node_count": 15,
+  "max_depth": 3,
+  "classes": [
+    0,
+    1,
+    2
+  ],
+  "feature_importances": {
+    "x_norm": 0.0,
+    "y_norm": 0.0,
+    "state_hidden": 0.0,
+    "state_surveyed": 0.0,
+    "state_revealed": 0.0,
+    "claimed": 0.0,
+    "owned_by_actor": 0.0,
+    "action_rush": 0.09832067753375895,
+    "action_claim": 0.0,
+    "revealed_neighbors": 0.09908390143720902,
+    "surveyed_neighbors": 0.3375048973809125,
+    "dist_survey": 0.46509052364811954,
+    "dist_player_reveal": 0.0,
+    "remaining_actions": 0.0
+  },
+  "feature_names": [
+    "x_norm",
+    "y_norm",
+    "state_hidden",
+    "state_surveyed",
+    "state_revealed",
+    "claimed",
+    "owned_by_actor",
+    "action_rush",
+    "action_claim",
+    "revealed_neighbors",
+    "surveyed_neighbors",
+    "dist_survey",
+    "dist_player_reveal",
+    "remaining_actions"
+  ]
+}

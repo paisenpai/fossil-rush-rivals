@@ -18,6 +18,10 @@ class GameState:
     current_turn: str
     player_actions_left: int
     ai_actions_left: int
+    player_rush_left: int
+    player_claim_left: int
+    ai_rush_left: int
+    ai_claim_left: int
     selected_action: str
     rng: random.Random
     fossils: Dict[str, Fossil]
@@ -27,10 +31,11 @@ class GameState:
     lab_target_ai: Optional[str]
     lab_substate: str
     lab_result_lines: List[str]
-    lab_selected_focus_index: int
     lab_selected_fossil_index: int
     lab_processed_player: List[str]
     lab_ai_results: List[str]
+    lab_focus_player: Dict[str, str]
+    lab_focus_ai: Dict[str, str]
     lab_pending_focus: Optional[str]
     lab_pending_target: Optional[str]
     player_score: int
@@ -60,6 +65,10 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         current_turn="player",
         player_actions_left=config.PLAYER_ACTIONS,
         ai_actions_left=config.AI_ACTIONS,
+        player_rush_left=config.RUSH_ACTION_LIMIT,
+        player_claim_left=config.CLAIM_ACTION_LIMIT,
+        ai_rush_left=config.RUSH_ACTION_LIMIT,
+        ai_claim_left=config.CLAIM_ACTION_LIMIT,
         selected_action=config.ACTION_CAREFUL,
         rng=rng,
         fossils=fossils,
@@ -69,10 +78,11 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         lab_target_ai=None,
         lab_substate=config.LAB_SUB_CHOOSE_FOCUS,
         lab_result_lines=[],
-        lab_selected_focus_index=0,
         lab_selected_fossil_index=0,
         lab_processed_player=[],
         lab_ai_results=[],
+        lab_focus_player={},
+        lab_focus_ai={},
         lab_pending_focus=None,
         lab_pending_target=None,
         player_score=0,

@@ -89,6 +89,11 @@ def build_market_events(
     player_fossils = [f for f in fossils.values() if f.owner == "player"]
     ai_fossils = [f for f in fossils.values() if f.owner == "ai"]
 
+    if not player_fossils:
+        events.append({"text": "Player found no fossils to auction.", "player": 0, "ai": 0})
+    if not ai_fossils:
+        events.append({"text": "Rival found no fossils to auction.", "player": 0, "ai": 0})
+
     for fossil in player_fossils:
         value = fossil_value(fossil, trend)
         events.append(

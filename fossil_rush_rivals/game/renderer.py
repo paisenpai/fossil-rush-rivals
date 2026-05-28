@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Dict, List, Optional
 
 import pygame
 
 from . import config
+from .fossils import Fossil
 from .grid import Grid, Tile
 
 
@@ -169,13 +170,15 @@ def _panel(surface: pygame.Surface, rect: pygame.Rect) -> None:
 def draw_lab_focus_screen(
     surface: pygame.Surface,
     font: pygame.font.Font,
-    player_list: list[str],
-    ai_list: list[str],
+    player_fossils: List[Fossil],
+    ai_fossils: List[Fossil],
+    player_focus: Dict[str, str],
+    ai_focus: Dict[str, str],
     market_trend: str,
     focus_label: str,
     fossil_index: int,
     processed_count: int,
-) -> None:
+) -> Optional[pygame.Rect]:
     header_rect = pygame.Rect(80, 140, config.WINDOW_WIDTH - 160, 60)
     left_rect = pygame.Rect(80, 220, (config.WINDOW_WIDTH - 180) // 2, 300)
     right_rect = pygame.Rect(left_rect.right + 20, 220, (config.WINDOW_WIDTH - 180) // 2, 300)
@@ -190,33 +193,49 @@ def draw_lab_focus_screen(
     draw_text(surface, trend, (header_rect.x + 16, header_rect.y + 34), font)
 
     draw_text(surface, "Player collection", (left_rect.x + 12, left_rect.y + 12), font)
-    for index, line in enumerate(player_list[:6]):
-        draw_text(surface, line, (left_rect.x + 12, left_rect.y + 40 + index * 24), font)
+    for index, fossil in enumerate(player_fossils[:6]):
+        line_y = left_rect.y + 40 + index * 24
+        line_text = f"{index + 1}. {fossil.name}"
+        draw_text(surface, line_text, (left_rect.x + 12, line_y), font)
+        focus_text = f"<{player_focus.get(fossil.fossil_id, config.LAB_CHOICES[0])}>"
+        focus_surface = font.render(focus_text, True, config.TEXT_COLOR)
+        focus_rect = focus_surface.get_rect(topright=(left_rect.right - 12, line_y))
+        surface.blit(focus_surface, focus_rect)
 
     draw_text(surface, "AI rival collection", (right_rect.x + 12, right_rect.y + 12), font)
-    for index, line in enumerate(ai_list[:6]):
-        draw_text(surface, line, (right_rect.x + 12, right_rect.y + 40 + index * 24), font)
+    for index, fossil in enumerate(ai_fossils[:6]):
+        line_y = right_rect.y + 40 + index * 24
+        line_text = f"{index + 1}. {fossil.name}"
+        draw_text(surface, line_text, (right_rect.x + 12, line_y), font)
+        focus_text = f"<{ai_focus.get(fossil.fossil_id, config.LAB_CHOICES[0])}>"
+        focus_surface = font.render(focus_text, True, config.TEXT_COLOR)
+        focus_rect = focus_surface.get_rect(topright=(right_rect.right - 12, line_y))
+        surface.blit(focus_surface, focus_rect)
 
     draw_text(surface, f"Focus: {focus_label}", (footer_rect.x + 16, footer_rect.y + 12), font)
     draw_text(surface, "Left/Right: change focus", (footer_rect.x + 16, footer_rect.y + 38), font)
     draw_text(surface, "Up/Down: select fossil", (footer_rect.x + 16, footer_rect.y + 62), font)
-    draw_text(surface, "Enter: confirm focus", (footer_rect.x + 16, footer_rect.y + 86), font)
+    draw_text(surface, "Enter or DONE: open confirmation", (footer_rect.x + 16, footer_rect.y + 86), font)
 
-    if player_list:
-        focus_rect = pygame.Rect(footer_rect.right - 180, footer_rect.y + 30, 150, 40)
-        _panel(surface, focus_rect)
-        draw_text(surface, "Confirm", (focus_rect.x + 32, focus_rect.y + 10), font)
+    done_rect = None
+    if player_fossils:
+        done_rect = pygame.Rect(footer_rect.right - 140, footer_rect.y + 30, 120, 40)
+        _panel(surface, done_rect)
+        done_text = font.render("DONE", True, config.TEXT_COLOR)
+        surface.blit(done_text, done_text.get_rect(center=done_rect.center))
 
-    if player_list:
+    if player_fossils:
         cursor_y = left_rect.y + 40 + fossil_index * 24
         cursor_rect = pygame.Rect(left_rect.x + 8, cursor_y - 2, left_rect.width - 16, 22)
         pygame.draw.rect(surface, config.HOVER_COLOR, cursor_rect, 1)
         draw_text(
             surface,
-            f"Processed: {processed_count}/{len(player_list)}",
+            f"Processed: {processed_count}/{len(player_fossils)}",
             (left_rect.x + 12, left_rect.bottom - 30),
             font,
         )
+
+    return done_rect
 
 
 def draw_lab_result_screen(surface: pygame.Surface, font: pygame.font.Font, lines: list[str]) -> None:
@@ -234,7 +253,7 @@ def draw_lab_confirm_screen(surface: pygame.Surface, font: pygame.font.Font, foc
     draw_text(surface, "Confirm Lab Focus", (panel_rect.x + 16, panel_rect.y + 16), font)
     draw_text(surface, f"Focus: {focus}", (panel_rect.x + 16, panel_rect.y + 60), font)
     draw_text(surface, f"Target: {target}", (panel_rect.x + 16, panel_rect.y + 90), font)
-    draw_text(surface, "Press Enter to confirm or Backspace to cancel.", (panel_rect.x + 16, panel_rect.y + 140), font)
+    draw_text(surface, "Press Enter to apply or Backspace to return.", (panel_rect.x + 16, panel_rect.y + 140), font)
 
 
 def draw_market_intro_screen(surface: pygame.Surface, font: pygame.font.Font, trend: str) -> None:

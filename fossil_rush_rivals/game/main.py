@@ -3,7 +3,7 @@ import sys
 import pygame
 
 from . import config
-from .ai_runtime import choose_action
+from .ai_runtime import choose_action, load_runtime_models
 from .excavation import advance_claims, apply_action, can_target_tile, next_turn_label
 from .game_state import create_game_state
 from .laboratory import (
@@ -37,11 +37,14 @@ def main() -> None:
     clock = pygame.time.Clock()
     title_font, label_font = build_fonts()
 
+    load_runtime_models()
+
     state = create_game_state()
     running = True
     title_buttons = []
     final_buttons = []
     journal_buttons = []
+    lab_done_button = None
 
     while running:
         clock.tick(config.FPS)
@@ -75,12 +78,21 @@ def main() -> None:
                             state = create_game_state(start_in_title=False)
                         elif final_buttons[2].collidepoint(event.pos):
                             state = create_game_state(start_in_title=True)
+                elif state.phase == config.PHASE_LAB and state.lab_substate == config.LAB_SUB_CHOOSE_FOCUS:
+                    if lab_done_button and lab_done_button.collidepoint(event.pos):
+                        state.lab_substate = config.LAB_SUB_CONFIRM
                 elif state.phase == config.PHASE_EXCAVATION and state.current_turn == "player":
                     if state.player_actions_left <= 0:
                         state.narration = "No actions left for the player."
                     else:
                         tile = state.grid.tile_at_pixel(event.pos)
                         if tile and can_target_tile(tile, state.selected_action, "player", state.grid):
+                            if state.selected_action == config.ACTION_RUSH and state.player_rush_left <= 0:
+                                state.narration = "No rush digs left for the player."
+                                continue
+                            if state.selected_action == config.ACTION_CLAIM and state.player_claim_left <= 0:
+                                state.narration = "No claim zones left for the player."
+                                continue
                             state.narration = apply_action(
                                 state.selected_action,
                                 state.grid,
@@ -90,6 +102,10 @@ def main() -> None:
                                 state.fossils,
                             )
                             state.player_actions_left -= 1
+                            if state.selected_action == config.ACTION_RUSH:
+                                state.player_rush_left -= 1
+                            elif state.selected_action == config.ACTION_CLAIM:
+                                state.player_claim_left -= 1
                             advance_claims(state.grid)
                             state.current_turn = next_turn_label(state.current_turn)
                         elif tile:
@@ -117,61 +133,54 @@ def main() -> None:
                                 max(state.lab_selected_fossil_index, available_indices[0]),
                                 available_indices[-1],
                             )
-                        if event.key == pygame.K_LEFT:
-                            state.lab_selected_focus_index = (state.lab_selected_focus_index - 1) % len(
-                                config.LAB_CHOICES
+                        if event.key in {pygame.K_LEFT, pygame.K_RIGHT} and player_fossils:
+                            target_fossil = player_fossils[state.lab_selected_fossil_index]
+                            current_focus = state.lab_focus_player.get(
+                                target_fossil.fossil_id,
+                                config.LAB_CHOICES[0],
                             )
-                        elif event.key == pygame.K_RIGHT:
-                            state.lab_selected_focus_index = (state.lab_selected_focus_index + 1) % len(
-                                config.LAB_CHOICES
-                            )
+                            current_index = config.LAB_CHOICES.index(current_focus)
+                            direction = -1 if event.key == pygame.K_LEFT else 1
+                            next_index = (current_index + direction) % len(config.LAB_CHOICES)
+                            state.lab_focus_player[target_fossil.fossil_id] = config.LAB_CHOICES[next_index]
                         elif event.key == pygame.K_UP and player_fossils:
                             if available_indices:
                                 prev_indices = [idx for idx in available_indices if idx < state.lab_selected_fossil_index]
                                 state.lab_selected_fossil_index = prev_indices[-1] if prev_indices else available_indices[0]
+                                target_fossil = player_fossils[state.lab_selected_fossil_index]
+                                state.lab_focus_player.setdefault(target_fossil.fossil_id, config.LAB_CHOICES[0])
                         elif event.key == pygame.K_DOWN and player_fossils:
                             if available_indices:
                                 next_indices = [idx for idx in available_indices if idx > state.lab_selected_fossil_index]
                                 state.lab_selected_fossil_index = next_indices[0] if next_indices else available_indices[-1]
+                                target_fossil = player_fossils[state.lab_selected_fossil_index]
+                                state.lab_focus_player.setdefault(target_fossil.fossil_id, config.LAB_CHOICES[0])
                         elif event.key == pygame.K_RETURN and player_fossils:
-                            selected_focus = config.LAB_CHOICES[state.lab_selected_focus_index]
-                            target_fossil = player_fossils[state.lab_selected_fossil_index]
-                            if target_fossil.fossil_id in state.lab_processed_player:
-                                state.lab_result_lines = ["That fossil was already processed."]
-                            else:
-                                state.lab_pending_focus = selected_focus
-                                state.lab_pending_target = target_fossil.fossil_id
-                                state.lab_substate = config.LAB_SUB_CONFIRM
+                            state.lab_substate = config.LAB_SUB_CONFIRM
                     elif state.lab_substate == config.LAB_SUB_CONFIRM:
                         if event.key == pygame.K_RETURN:
-                            pending = state.fossils.get(state.lab_pending_target)
                             result_lines = []
-                            if pending:
-                                result_lines.append(apply_lab_focus(pending, state.lab_pending_focus, state.rng))
-                                state.lab_processed_player.append(pending.fossil_id)
+                            player_fossils = list_owned_fossils(state.fossils, "player")
+                            if not player_fossils:
+                                result_lines.append("No fossils to process.")
+                            else:
+                                for fossil in player_fossils:
+                                    if fossil.fossil_id in state.lab_processed_player:
+                                        continue
+                                    focus = state.lab_focus_player.get(fossil.fossil_id, config.LAB_CHOICES[0])
+                                    result_lines.append(apply_lab_focus(fossil, focus, state.rng))
+                                    state.lab_processed_player.append(fossil.fossil_id)
                             state.lab_result_lines = result_lines
 
-                            player_fossils = list_owned_fossils(state.fossils, "player")
-                            remaining = [
-                                fossil
-                                for fossil in player_fossils
-                                if fossil.fossil_id not in state.lab_processed_player
-                            ]
-                            if remaining:
-                                next_id = remaining[0].fossil_id
-                                state.lab_selected_fossil_index = max(
-                                    0,
-                                    player_fossils.index(state.fossils[next_id]),
-                                )
-                                state.lab_substate = config.LAB_SUB_CHOOSE_FOCUS
-                            else:
-                                state.lab_substate = config.LAB_SUB_RESULT
-                            state.lab_pending_focus = None
-                            state.lab_pending_target = None
+                            state.lab_ai_results = []
+                            ai_fossils = list_owned_fossils(state.fossils, "ai")
+                            for fossil in ai_fossils:
+                                focus = state.lab_focus_ai.get(fossil.fossil_id, config.LAB_CHOICES[0])
+                                state.lab_ai_results.append(apply_lab_focus(fossil, focus, state.rng))
+
+                            state.lab_substate = config.LAB_SUB_RESULT
                         elif event.key == pygame.K_BACKSPACE:
                             state.lab_substate = config.LAB_SUB_CHOOSE_FOCUS
-                            state.lab_pending_focus = None
-                            state.lab_pending_target = None
                     elif state.lab_substate == config.LAB_SUB_RESULT:
                         if event.key == pygame.K_RETURN:
                             state.phase = config.PHASE_MARKET
@@ -212,7 +221,14 @@ def main() -> None:
 
         if state.phase == config.PHASE_EXCAVATION and state.current_turn == "ai":
             if state.ai_actions_left > 0:
-                choice = choose_action(state.grid, "ai", state.rng)
+                choice = choose_action(
+                    state.grid,
+                    "ai",
+                    state.rng,
+                    rush_left=state.ai_rush_left,
+                    claim_left=state.ai_claim_left,
+                    remaining_actions=state.ai_actions_left,
+                )
                 if choice:
                     state.narration = apply_action(
                         choice.action,
@@ -223,6 +239,10 @@ def main() -> None:
                         state.fossils,
                     )
                     state.ai_actions_left -= 1
+                    if choice.action == config.ACTION_RUSH:
+                        state.ai_rush_left -= 1
+                    elif choice.action == config.ACTION_CLAIM:
+                        state.ai_claim_left -= 1
                     advance_claims(state.grid)
                 else:
                     state.narration = "Rival AI has no valid actions."
@@ -241,15 +261,17 @@ def main() -> None:
                 state.market_trend = state.rng.choice(MARKET_TRENDS)
             state.lab_substate = config.LAB_SUB_CHOOSE_FOCUS
             state.lab_processed_player = []
-            state.lab_selected_focus_index = 0
             state.lab_selected_fossil_index = 0
             state.lab_ai_results = []
-            state.lab_pending_focus = None
-            state.lab_pending_target = None
+            state.lab_focus_player = {}
+            state.lab_focus_ai = {}
+            player_fossils = list_owned_fossils(state.fossils, "player")
+            for fossil in player_fossils:
+                state.lab_focus_player[fossil.fossil_id] = config.LAB_CHOICES[0]
             ai_fossils = list_owned_fossils(state.fossils, "ai")
             for fossil in ai_fossils:
                 focus = choose_ai_focus_for_fossil(fossil, state.rng, state.market_trend)
-                state.lab_ai_results.append(apply_lab_focus(fossil, focus, state.rng))
+                state.lab_focus_ai[fossil.fossil_id] = focus
 
         screen.fill(config.BACKGROUND_COLOR)
         draw_header(screen, title_font, label_font, state.phase)
@@ -274,27 +296,33 @@ def main() -> None:
             draw_action_bar(screen, label_font, state.selected_action)
             draw_narration(screen, label_font, state.narration)
         elif state.phase == config.PHASE_LAB:
-            player_list = [f"{index + 1}. {fossil.name}" for index, fossil in enumerate(list_owned_fossils(state.fossils, "player"))]
-            ai_list = [f"{index + 1}. {fossil.name}" for index, fossil in enumerate(list_owned_fossils(state.fossils, "ai"))]
+            player_fossils = list_owned_fossils(state.fossils, "player")
+            ai_fossils = list_owned_fossils(state.fossils, "ai")
             if state.lab_substate == config.LAB_SUB_CHOOSE_FOCUS:
-                focus_label = config.LAB_CHOICES[state.lab_selected_focus_index]
-                draw_lab_focus_screen(
+                focus_label = ""
+                if player_fossils:
+                    selected_fossil = player_fossils[state.lab_selected_fossil_index]
+                    focus_label = state.lab_focus_player.get(selected_fossil.fossil_id, config.LAB_CHOICES[0])
+                lab_done_button = draw_lab_focus_screen(
                     screen,
                     label_font,
-                    player_list,
-                    ai_list,
+                    player_fossils,
+                    ai_fossils,
+                    state.lab_focus_player,
+                    state.lab_focus_ai,
                     state.market_trend,
                     focus_label,
                     state.lab_selected_fossil_index,
                     len(state.lab_processed_player),
                 )
             elif state.lab_substate == config.LAB_SUB_RESULT:
+                lab_done_button = None
                 result_lines = state.lab_result_lines + state.lab_ai_results
                 draw_lab_result_screen(screen, label_font, result_lines)
             elif state.lab_substate == config.LAB_SUB_CONFIRM:
-                target = state.fossils.get(state.lab_pending_target)
-                target_name = target.name if target else "Unknown"
-                draw_lab_confirm_screen(screen, label_font, state.lab_pending_focus, target_name)
+                lab_done_button = None
+                target_name = f"{len(player_fossils)} fossils"
+                draw_lab_confirm_screen(screen, label_font, "Selected per fossil", target_name)
         elif state.phase == config.PHASE_MARKET:
             if state.market_substate == config.MARKET_SUB_INTRO:
                 draw_market_intro_screen(screen, label_font, state.market_trend)
