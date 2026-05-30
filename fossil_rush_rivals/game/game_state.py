@@ -49,6 +49,11 @@ class GameState:
     journal_view: str
     journal_show_sets: bool
     journal_show_individuals: bool
+    player_dig_ticks: int
+    ai_dig_ticks: int
+    ai_think_start: int   # pygame ticks when AI turn began
+    ai_think_delay: int   # random delay in ms (1000-5000) rolled each turn
+    bg_key: str
 
 
 def create_game_state(start_in_title: bool = True) -> GameState:
@@ -96,4 +101,10 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         journal_view="root",
         journal_show_sets=True,
         journal_show_individuals=True,
+        player_dig_ticks=0,
+        ai_dig_ticks=0,
+        ai_think_start=0,
+        ai_think_delay=0,
+        bg_key="homescreen" if start_in_title else "playing_day",
     )
+

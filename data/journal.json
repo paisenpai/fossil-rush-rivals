@@ -3,20 +3,32 @@
     "fossil_crinoid": {
       "name": "Crinoid Stem",
       "code": "CS",
-      "discovered": 1,
-      "last_found": "2026-05-30"
+      "discovered": 3,
+      "last_found": "2026-05-31",
+      "description": "Stacked stem segments from a sea lily-like animal.",
+      "year_discovered": "1735",
+      "facts": "Crinoids are echinoderms related to sea stars.",
+      "authenticated": true
     },
     "fossil_shark_tooth": {
       "name": "Shark Tooth",
       "code": "ST",
-      "discovered": 1,
-      "last_found": "2026-05-30"
+      "discovered": 2,
+      "last_found": "2026-05-31",
+      "description": "Compact tooth fossil with serrated edges and dense enamel.",
+      "year_discovered": "1667",
+      "facts": "Shark teeth are among the most common fossil finds worldwide.",
+      "authenticated": true
     },
     "fossil_coprolite": {
       "name": "Coprolite",
       "code": "CO",
-      "discovered": 1,
-      "last_found": "2026-05-30"
+      "discovered": 2,
+      "last_found": "2026-05-31",
+      "description": "Fossilized waste with preserved inclusions.",
+      "year_discovered": "1829",
+      "facts": "Coprolites reveal diet details of extinct animals.",
+      "authenticated": true
     },
     "set_trike_horn": {
       "name": "Triceratops Horn Core",
@@ -27,9 +39,12 @@
     "fossil_bone_fragment": {
       "name": "Small Bone Fragment",
       "description": "Small fossil bone shard with rough cortical texture.",
-      "discovered": 1,
-      "last_found": "2026-05-30",
-      "restoration_notes": "Consolidant improves durability without altering shape."
+      "discovered": 3,
+      "last_found": "2026-05-31",
+      "restoration_notes": "Consolidant improves durability without altering shape.",
+      "year_discovered": "1850",
+      "facts": "Fragments can identify larger animals through microstructure.",
+      "authenticated": true
     },
     "set_trike_frill": {
       "name": "Triceratops Frill Fragment",
@@ -46,14 +61,66 @@
       "discovered": 1,
       "last_found": "2026-05-30",
       "restoration_notes": "Edge support prevents stress fractures."
+    },
+    "fossil_brachiopod": {
+      "name": "Brachiopod",
+      "description": "Marine shell fossil with bilateral symmetry.",
+      "discovered": 3,
+      "last_found": "2026-05-31",
+      "year_discovered": "1742",
+      "facts": "Brachiopods resemble clams but have different internal anatomy.",
+      "authenticated": true
+    },
+    "fossil_trilobite": {
+      "name": "Trilobite",
+      "description": "Segmented marine arthropod known for its armored exoskeleton.",
+      "discovered": 2,
+      "last_found": "2026-05-31",
+      "year_discovered": "1698",
+      "facts": "Trilobites dominated Paleozoic seas for over 250 million years.",
+      "authenticated": true
+    },
+    "fossil_fern": {
+      "name": "Fern Impression",
+      "description": "Plant impression fossil preserving delicate leaf patterns.",
+      "discovered": 1,
+      "last_found": "2026-05-30",
+      "year_discovered": "1820",
+      "facts": "Fern fossils often appear as carbon films in shale.",
+      "authenticated": true
+    },
+    "fossil_wood": {
+      "name": "Fossilized Wood",
+      "description": "Mineralized wood with preserved growth rings and texture.",
+      "discovered": 1,
+      "last_found": "2026-05-31",
+      "year_discovered": "1737",
+      "facts": "Petrified wood forms when minerals replace organic tissue.",
+      "authenticated": true
+    },
+    "set_trike_tooth": {
+      "name": "Triceratops Tooth",
+      "description": "Tooth fragment from a Triceratops set piece.",
+      "discovered": 1,
+      "last_found": "2026-05-31",
+      "year_discovered": "1890",
+      "facts": "Triceratops teeth were built for grinding plants.",
+      "authenticated": true
+    },
+    "set_mammoth_molar": {
+      "name": "Mammoth Molar",
+      "description": "Large molar fragment with ridged enamel.",
+      "discovered": 1,
+      "last_found": "2026-05-31"
     }
   },
   "sets": {},
-  "best_auction": 600,
+  "best_auction": 687,
   "market_trends": {
-    "Museum Night": 3,
-    "Research Grant": 1,
-    "Fraud Panic": 1
+    "Museum Night": 4,
+    "Research Grant": 2,
+    "Fraud Panic": 2,
+    "Collector Craze": 3
   },
-  "last_updated": "2026-05-30"
+  "last_updated": "2026-05-31"
 }

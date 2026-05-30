@@ -21,10 +21,26 @@ GRID_LINE_COLOR = (70, 70, 85)
 TEXT_COLOR = (235, 235, 240)
 HOVER_COLOR = (90, 90, 110)
 
+# Cavern Archeology UI Theme Colors
+THEME_BG = (28, 25, 23)             # Deep warm-earth panel interior
+THEME_TEXT_GOLD = (245, 215, 120)    # Bright archaeological gold
+THEME_TEXT_CREAM = (235, 225, 210)   # Creamy parchment white
+THEME_TEXT_SHADOW = (20, 12, 8)      # Offset drop shadow for text
+THEME_WOOD_DARK = (48, 28, 16)       # Walnut shadow / dark bevel
+THEME_WOOD_MED = (96, 56, 36)        # Oak base wood
+THEME_WOOD_LIGHT = (168, 110, 72)    # Light oak edge highlight
+THEME_STONE_DARK = (28, 28, 34)      # Slate shadow
+THEME_STONE_MED = (48, 48, 56)       # Deep slate base
+THEME_STONE_LIGHT = (85, 85, 100)    # Slate edge highlight
+THEME_GOLD_ACCENT = (235, 195, 80)   # Glowing gold accent (active/hover)
+THEME_GOLD_SHADOW = (150, 115, 35)   # Antique brass/gold shadow
+
+
 TITLE_TEXT = "Fossil Rush Rivals"
 PHASE_TITLE = "Title Screen"
 PHASE_JOURNAL = "Field Journal"
 PHASE_EXCAVATION = "Excavation Phase"
+PHASE_DIG_COMPLETE = "Dig Site Closed"
 PHASE_LAB = "Laboratory Verification"
 PHASE_MARKET = "Midnight Market"
 NARRATION_TEXT = "Hover a tile to inspect it."

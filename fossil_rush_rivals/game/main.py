@@ -15,6 +15,7 @@ from .market import MARKET_TRENDS, build_market_events, update_emotions
 from .journal import build_journal_view, get_entry_details, load_journal, save_journal, update_from_match
 from .renderer import (
     draw_action_bar,
+    draw_dig_complete_screen,
     draw_grid,
     draw_header,
     draw_lab_confirm_screen,
@@ -29,6 +30,7 @@ from .renderer import (
     draw_title_screen,
 )
 from .ui import build_fonts
+from . import sprites
 
 
 def main() -> None:
@@ -37,6 +39,9 @@ def main() -> None:
     pygame.display.set_caption(config.TITLE_TEXT)
     clock = pygame.time.Clock()
     title_font, label_font = build_fonts()
+
+    # Load and cache all transparent sprites at startup
+    sprites.load_sprites()
 
     load_runtime_models()
 
@@ -53,6 +58,7 @@ def main() -> None:
     journal_set_toggle = None
     journal_individual_toggle = None
     lab_done_button = None
+    action_bar_buttons: list[tuple[pygame.Rect, str]] = []
 
     while running:
         clock.tick(config.FPS)
@@ -131,44 +137,58 @@ def main() -> None:
                             state = create_game_state(start_in_title=False)
                         elif final_buttons[2].collidepoint(event.pos):
                             state = create_game_state(start_in_title=True)
+                elif state.phase == config.PHASE_EXCAVATION and state.current_turn == "player":
+                    # Action bar button clicks
+                    for btn_rect, action_key in action_bar_buttons:
+                        if btn_rect.collidepoint(event.pos):
+                            state.selected_action = action_key
+                            break
+                    else:
+                        if state.player_actions_left <= 0:
+                            state.narration = "No actions left for the player."
+                        else:
+                            tile = state.grid.tile_at_pixel(event.pos)
+                            if tile and can_target_tile(
+                                tile,
+                                state.selected_action,
+                                "player",
+                                state.grid,
+                                state.fossils,
+                            ):
+                                if state.selected_action == config.ACTION_RUSH and state.player_rush_left <= 0:
+                                    state.narration = "No rush digs left for the player."
+                                    continue
+                                if state.selected_action == config.ACTION_CLAIM and state.player_claim_left <= 0:
+                                    state.narration = "No claim zones left for the player."
+                                    continue
+
+                                # Record dig animation ticks
+                                state.player_dig_ticks = pygame.time.get_ticks()
+
+                                state.narration = apply_action(
+                                    state.selected_action,
+                                    state.grid,
+                                    tile,
+                                    "player",
+                                    state.rng,
+                                    state.fossils,
+                                )
+                                state.player_actions_left -= 1
+                                if state.selected_action == config.ACTION_RUSH:
+                                    state.player_rush_left -= 1
+                                elif state.selected_action == config.ACTION_CLAIM:
+                                    state.player_claim_left -= 1
+                                advance_claims(state.grid)
+                                state.current_turn = next_turn_label(state.current_turn)
+                                if state.current_turn == "ai":
+                                    state.ai_think_start = pygame.time.get_ticks()
+                                    state.ai_think_delay = state.rng.randint(1000, 5000)
+                                    state.narration = "Rival AI is thinking..."
+                            elif tile:
+                                state.narration = "That tile is not a valid target."
                 elif state.phase == config.PHASE_LAB and state.lab_substate == config.LAB_SUB_CHOOSE_FOCUS:
                     if lab_done_button and lab_done_button.collidepoint(event.pos):
                         state.lab_substate = config.LAB_SUB_CONFIRM
-                elif state.phase == config.PHASE_EXCAVATION and state.current_turn == "player":
-                    if state.player_actions_left <= 0:
-                        state.narration = "No actions left for the player."
-                    else:
-                        tile = state.grid.tile_at_pixel(event.pos)
-                        if tile and can_target_tile(
-                            tile,
-                            state.selected_action,
-                            "player",
-                            state.grid,
-                            state.fossils,
-                        ):
-                            if state.selected_action == config.ACTION_RUSH and state.player_rush_left <= 0:
-                                state.narration = "No rush digs left for the player."
-                                continue
-                            if state.selected_action == config.ACTION_CLAIM and state.player_claim_left <= 0:
-                                state.narration = "No claim zones left for the player."
-                                continue
-                            state.narration = apply_action(
-                                state.selected_action,
-                                state.grid,
-                                tile,
-                                "player",
-                                state.rng,
-                                state.fossils,
-                            )
-                            state.player_actions_left -= 1
-                            if state.selected_action == config.ACTION_RUSH:
-                                state.player_rush_left -= 1
-                            elif state.selected_action == config.ACTION_CLAIM:
-                                state.player_claim_left -= 1
-                            advance_claims(state.grid)
-                            state.current_turn = next_turn_label(state.current_turn)
-                        elif tile:
-                            state.narration = "That tile is not a valid target."
             elif event.type == pygame.KEYDOWN:
                 if state.phase == config.PHASE_EXCAVATION:
                     if event.key == pygame.K_1:
@@ -179,6 +199,29 @@ def main() -> None:
                         state.selected_action = config.ACTION_RUSH
                     elif event.key == pygame.K_4:
                         state.selected_action = config.ACTION_CLAIM
+                elif state.phase == config.PHASE_DIG_COMPLETE:
+                    if event.key == pygame.K_RETURN:
+                        # Now set up the lab phase
+                        state.phase = config.PHASE_LAB
+                        state.bg_key = "lab_afternoon"
+                        state.narration = "Choose a Lab Focus."
+                        if not state.market_trend:
+                            state.market_trend = state.rng.choice(MARKET_TRENDS)
+                        state.lab_substate = config.LAB_SUB_CHOOSE_FOCUS
+                        state.lab_processed_player = []
+                        state.lab_selected_fossil_index = 0
+                        state.lab_ai_results = []
+                        state.lab_focus_player = {}
+                        state.lab_focus_ai = {}
+                        player_fossils = list_owned_fossils(state.fossils, "player")
+                        for fossil in player_fossils:
+                            state.lab_focus_player[fossil.fossil_id] = config.LAB_CHOICES[0]
+                        ai_fossils = list_owned_fossils(state.fossils, "ai")
+                        for fossil in ai_fossils:
+                            focus = choose_ai_focus_for_fossil(fossil, state.rng, state.market_trend)
+                            state.lab_focus_ai[fossil.fossil_id] = focus
+                            if config.AI_DEBUG_LOG:
+                                print(f"Debug: Rival lab choice {focus} for {fossil.name}.")
                 elif state.phase == config.PHASE_LAB:
                     if state.lab_substate == config.LAB_SUB_CHOOSE_FOCUS:
                         player_fossils = list_owned_fossils(state.fossils, "player")
@@ -252,6 +295,7 @@ def main() -> None:
                     elif state.lab_substate == config.LAB_SUB_RESULT:
                         if event.key == pygame.K_RETURN:
                             state.phase = config.PHASE_MARKET
+                            state.bg_key = "auction_night"
                             state.market_substate = config.MARKET_SUB_INTRO
                 elif state.phase == config.PHASE_MARKET:
                     if state.market_substate == config.MARKET_SUB_INTRO:
@@ -288,63 +332,63 @@ def main() -> None:
                             state = create_game_state(start_in_title=True)
 
         if state.phase == config.PHASE_EXCAVATION and state.current_turn == "ai":
-            if state.ai_actions_left > 0:
-                choice = choose_action(
-                    state.grid,
-                    "ai",
-                    state.rng,
-                    fossils=state.fossils,
-                    rush_left=state.ai_rush_left,
-                    claim_left=state.ai_claim_left,
-                    remaining_actions=state.ai_actions_left,
-                )
-                if choice:
-                    state.narration = apply_action(
-                        choice.action,
+            # Wait for the randomly-rolled delay (1-5 seconds) before the AI acts
+            now = pygame.time.get_ticks()
+            elapsed = (now - state.ai_think_start) if state.ai_think_start > 0 else (state.ai_think_delay + 1)
+            if elapsed >= state.ai_think_delay:
+                if state.ai_actions_left > 0:
+                    choice = choose_action(
                         state.grid,
-                        choice.tile,
                         "ai",
                         state.rng,
-                        state.fossils,
+                        fossils=state.fossils,
+                        rush_left=state.ai_rush_left,
+                        claim_left=state.ai_claim_left,
+                        remaining_actions=state.ai_actions_left,
                     )
-                    state.ai_actions_left -= 1
-                    if choice.action == config.ACTION_RUSH:
-                        state.ai_rush_left -= 1
-                    elif choice.action == config.ACTION_CLAIM:
-                        state.ai_claim_left -= 1
-                    advance_claims(state.grid)
+                    if choice:
+                        # Record AI dig animation ticks
+                        state.ai_dig_ticks = pygame.time.get_ticks()
+
+                        state.narration = apply_action(
+                            choice.action,
+                            state.grid,
+                            choice.tile,
+                            "ai",
+                            state.rng,
+                            state.fossils,
+                        )
+                        state.ai_actions_left -= 1
+                        if choice.action == config.ACTION_RUSH:
+                            state.ai_rush_left -= 1
+                        elif choice.action == config.ACTION_CLAIM:
+                            state.ai_claim_left -= 1
+                        advance_claims(state.grid)
+                    else:
+                        state.narration = "Rival AI has no valid actions."
+                    state.current_turn = next_turn_label(state.current_turn)
+                    # If it stays AI's turn (multi-action scenario), roll a new delay
+                    if state.current_turn == "ai":
+                        state.ai_think_start = pygame.time.get_ticks()
+                        state.ai_think_delay = state.rng.randint(1000, 5000)
+                        state.narration = "Rival AI is thinking..."
                 else:
-                    state.narration = "Rival AI has no valid actions."
-                state.current_turn = next_turn_label(state.current_turn)
-            else:
-                state.current_turn = next_turn_label(state.current_turn)
+                    state.current_turn = next_turn_label(state.current_turn)
 
         if (
             state.phase == config.PHASE_EXCAVATION
             and state.player_actions_left <= 0
             and state.ai_actions_left <= 0
         ):
-            state.phase = config.PHASE_LAB
-            state.narration = "Choose a Lab Focus."
-            if not state.market_trend:
-                state.market_trend = state.rng.choice(MARKET_TRENDS)
-            state.lab_substate = config.LAB_SUB_CHOOSE_FOCUS
-            state.lab_processed_player = []
-            state.lab_selected_fossil_index = 0
-            state.lab_ai_results = []
-            state.lab_focus_player = {}
-            state.lab_focus_ai = {}
-            player_fossils = list_owned_fossils(state.fossils, "player")
-            for fossil in player_fossils:
-                state.lab_focus_player[fossil.fossil_id] = config.LAB_CHOICES[0]
-            ai_fossils = list_owned_fossils(state.fossils, "ai")
-            for fossil in ai_fossils:
-                focus = choose_ai_focus_for_fossil(fossil, state.rng, state.market_trend)
-                state.lab_focus_ai[fossil.fossil_id] = focus
-                if config.AI_DEBUG_LOG:
-                    print(f"Debug: Rival lab choice {focus} for {fossil.name}.")
+            # Go to the announcement screen before setting up the lab
+            state.phase = config.PHASE_DIG_COMPLETE
+            state.narration = "The dig site has closed."
 
-        screen.fill(config.BACKGROUND_COLOR)
+        bg_sprite = sprites.get_background_sprite(state.bg_key)
+        if bg_sprite:
+            screen.blit(bg_sprite, (0, 0))
+        else:
+            screen.fill(config.BACKGROUND_COLOR)
         draw_header(screen, title_font, label_font, state.phase)
         if state.phase == config.PHASE_TITLE:
             title_buttons = draw_title_screen(screen, title_font, label_font)
@@ -357,13 +401,21 @@ def main() -> None:
                 state.journal_show_sets,
                 state.journal_show_individuals,
             )
+            
+            # Automatically select the first fossil in the catalog by default!
+            if not state.journal_selected_key and cards:
+                state.journal_selected_key = cards[0]["key"]
+
             per_page = config.JOURNAL_CARDS_PER_PAGE
             max_page = 0
             if cards:
                 max_page = (len(cards) - 1) // per_page
             if state.journal_page > max_page:
                 state.journal_page = max_page
+                
             selected = get_entry_details(state.journal_data, state.journal_selected_key)
+            if selected:
+                selected["key"] = state.journal_selected_key
             (
                 back_rect,
                 close_rect,
@@ -394,18 +446,21 @@ def main() -> None:
             journal_individual_toggle = indiv_toggle_rect
             title_buttons = []
             final_buttons = []
-        elif state.phase == config.PHASE_EXCAVATION:
+        elif state.phase in {config.PHASE_EXCAVATION, config.PHASE_DIG_COMPLETE}:
             draw_side_panels(
                 screen,
                 label_font,
-                state.player_actions_left,
-                state.ai_actions_left,
-                state.current_turn,
-                config.ACTION_LABELS[state.selected_action],
+                state,
             )
             draw_grid(screen, state.grid, label_font, state.hover_tile)
-            draw_action_bar(screen, label_font, state.selected_action)
-            draw_narration(screen, label_font, state.narration)
+            if state.phase == config.PHASE_EXCAVATION:
+                action_bar_buttons = draw_action_bar(screen, label_font, state.selected_action)
+                draw_narration(screen, label_font, state.narration)
+            else:
+                # Overlay the dig-complete announcement on top of the frozen grid
+                draw_dig_complete_screen(screen, label_font)
+                # Redraw the header on top of the overlay so "Dig Site Closed" remains visible
+                draw_header(screen, title_font, label_font, state.phase)
         elif state.phase == config.PHASE_LAB:
             player_fossils = list_owned_fossils(state.fossils, "player")
             ai_fossils = list_owned_fossils(state.fossils, "ai")
@@ -441,12 +496,7 @@ def main() -> None:
                 draw_market_auction_screen(
                     screen,
                     label_font,
-                    state.player_score,
-                    state.ai_score,
-                    state.player_emotion,
-                    state.ai_emotion,
-                    state.market_trend,
-                    state.market_current_event,
+                    state,
                 )
             elif state.market_substate == config.MARKET_SUB_FINAL:
                 final_buttons = draw_market_final_screen(screen, label_font, state.market_final_lines)
