@@ -1,7 +1,6 @@
 {
   "n_estimators": 10,
   "classes": [
-    0,
     1,
     2
   ]

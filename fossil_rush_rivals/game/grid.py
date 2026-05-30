@@ -19,6 +19,8 @@ class Tile:
     owner: Optional[str] = None
     claimed_by: Optional[str] = None
     claim_turns_left: int = 0
+    dig_progress: int = 0
+    dig_required: int = 1
     survey_hint: Optional[str] = None
 
     def label(self) -> str:
@@ -29,6 +31,8 @@ class Tile:
         if self.state == "surveyed":
             if self.claimed_by:
                 return "X"
+            if self.content_type in {"fossil", "decoy"} and self.dig_progress > 0:
+                return str(min(self.dig_progress, max(self.dig_required, 1)))
             return "S"
         if self.state == "revealed":
             if self.content_type == "decoy":

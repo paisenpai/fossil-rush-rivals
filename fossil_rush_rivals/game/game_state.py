@@ -5,6 +5,7 @@ import random
 
 from .grid import Grid, Tile
 from .fossils import Fossil, place_fossils
+from .journal import load_journal
 from . import config
 
 
@@ -25,10 +26,6 @@ class GameState:
     selected_action: str
     rng: random.Random
     fossils: Dict[str, Fossil]
-    lab_choice_player: Optional[str]
-    lab_choice_ai: Optional[str]
-    lab_target_player: Optional[str]
-    lab_target_ai: Optional[str]
     lab_substate: str
     lab_result_lines: List[str]
     lab_selected_fossil_index: int
@@ -36,12 +33,9 @@ class GameState:
     lab_ai_results: List[str]
     lab_focus_player: Dict[str, str]
     lab_focus_ai: Dict[str, str]
-    lab_pending_focus: Optional[str]
-    lab_pending_target: Optional[str]
     player_score: int
     ai_score: int
     market_trend: str
-    market_narration: List[str]
     player_emotion: str
     ai_emotion: str
     market_substate: str
@@ -49,6 +43,12 @@ class GameState:
     market_event_index: int
     market_final_lines: List[str]
     market_current_event: str
+    journal_data: Dict[str, object]
+    journal_selected_key: Optional[str]
+    journal_page: int
+    journal_view: str
+    journal_show_sets: bool
+    journal_show_individuals: bool
 
 
 def create_game_state(start_in_title: bool = True) -> GameState:
@@ -56,6 +56,7 @@ def create_game_state(start_in_title: bool = True) -> GameState:
     grid = Grid(seed=match_seed)
     rng = random.Random(match_seed)
     fossils = place_fossils(grid, rng)
+    journal_data = load_journal()
     return GameState(
         phase=config.PHASE_TITLE if start_in_title else config.PHASE_EXCAVATION,
         match_seed=match_seed,
@@ -72,10 +73,6 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         selected_action=config.ACTION_CAREFUL,
         rng=rng,
         fossils=fossils,
-        lab_choice_player=None,
-        lab_choice_ai=None,
-        lab_target_player=None,
-        lab_target_ai=None,
         lab_substate=config.LAB_SUB_CHOOSE_FOCUS,
         lab_result_lines=[],
         lab_selected_fossil_index=0,
@@ -83,12 +80,9 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         lab_ai_results=[],
         lab_focus_player={},
         lab_focus_ai={},
-        lab_pending_focus=None,
-        lab_pending_target=None,
         player_score=0,
         ai_score=0,
         market_trend="",
-        market_narration=[],
         player_emotion="Focused",
         ai_emotion="Focused",
         market_substate=config.MARKET_SUB_INTRO,
@@ -96,4 +90,10 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         market_event_index=0,
         market_final_lines=[],
         market_current_event="",
+        journal_data=journal_data,
+        journal_selected_key=None,
+        journal_page=0,
+        journal_view="root",
+        journal_show_sets=True,
+        journal_show_individuals=True,
     )

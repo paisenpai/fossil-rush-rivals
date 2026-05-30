@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from . import config
 from .grid import Grid, Tile
 
 
@@ -27,6 +28,7 @@ class Fossil:
     condition: float = 0.75
     authenticity: str = "uncertain"
     verified: bool = False
+    broken: bool = False
     showcase_bonus: float = 0.0
     lab_focus_applied: Optional[str] = None
 
@@ -72,6 +74,10 @@ SHAPES = [
     [(0, 0), (1, 0), (2, 0)],
     [(0, 0), (0, 1), (0, 2)],
     [(0, 0), (1, 0), (0, 1)],
+    [(0, 0), (1, 0), (2, 0), (3, 0)],
+    [(0, 0), (0, 1), (0, 2), (0, 3)],
+    [(0, 0), (1, 0), (0, 1), (1, 1)],
+    [(0, 0), (1, 0), (2, 0), (1, 1)],
 ]
 
 FULL_SET_CHANCE = 0.45
@@ -162,6 +168,7 @@ def place_fossils(grid: Grid, rng) -> Dict[str, Fossil]:
                     tile.content_type = "fossil"
                     tile.fossil_id = template.fossil_id
                     tile.fossil_code = template.code
+                    tile.dig_required = 3 if len(template.offsets) > 1 else 2
             fossils[template.fossil_id] = Fossil(
                 fossil_id=template.fossil_id,
                 name=template.name,
@@ -193,6 +200,7 @@ def _place_decoys(grid: Grid, rng, occupied: set[tuple[int, int]]) -> None:
     decoy_count = min(DECOY_COUNT, len(empty_tiles))
     for tile in rng.sample(empty_tiles, decoy_count):
         tile.content_type = "decoy"
+        tile.dig_required = 2
 
 
 def reveal_fossil(fossils: Dict[str, Fossil], tile: Tile, owner: str) -> Optional[str]:
@@ -202,11 +210,25 @@ def reveal_fossil(fossils: Dict[str, Fossil], tile: Tile, owner: str) -> Optiona
     fossil = fossils.get(fossil_id)
     if not fossil:
         return None
+    first_claim = fossil.owner is None
     if fossil.owner is None:
         fossil.owner = owner
     coord = (tile.x, tile.y)
     if coord not in fossil.discovered_tiles:
         fossil.discovered_tiles.append(coord)
+        if config.AI_DEBUG_LOG:
+            owner_label = config.PLAYER_LABEL if fossil.owner == "player" else config.AI_LABEL
+            claim_note = " (claim)" if first_claim else ""
+            print(
+                "Debug: discovered {code} {name} at {x},{y} owned by {owner}{note}.".format(
+                    code=fossil.code,
+                    name=fossil.name,
+                    x=tile.x + 1,
+                    y=tile.y + 1,
+                    owner=owner_label,
+                    note=claim_note,
+                )
+            )
     return fossil.name
 
 

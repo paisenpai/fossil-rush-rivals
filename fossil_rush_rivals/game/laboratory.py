@@ -1,29 +1,19 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from . import config
 from .fossils import Fossil
-
-
-def list_lab_choices() -> List[str]:
-    return config.LAB_CHOICES
 
 
 def list_owned_fossils(fossils: Dict[str, Fossil], owner: str) -> List[Fossil]:
     return [fossil for fossil in fossils.values() if fossil.owner == owner]
 
 
-def eligible_targets(fossils: Dict[str, Fossil], owner: str, focus: str) -> List[Fossil]:
-    owned = list_owned_fossils(fossils, owner)
-    if focus == config.LAB_AUTHENTICATE:
-        return owned
-    if focus == config.LAB_RESTORE:
-        return [f for f in owned if f.condition < 0.85]
-    if focus == config.LAB_SHOWCASE:
-        return owned
-    return []
-
-
 def apply_lab_focus(fossil: Fossil, focus: str, rng) -> str:
+    if fossil.broken:
+        return f"{fossil.name} is too shattered to process."
+    if config.AI_DEBUG_LOG:
+        owner_label = config.PLAYER_LABEL if fossil.owner == "player" else config.AI_LABEL
+        print(f"Debug: {owner_label} lab focus {focus} on {fossil.name}.")
     fossil.lab_focus_applied = focus
     if focus == config.LAB_AUTHENTICATE:
         if rng.random() <= config.LAB_AUTHENTICATE_SUCCESS:
@@ -44,22 +34,6 @@ def apply_lab_focus(fossil: Fossil, focus: str, rng) -> str:
     return ""
 
 
-def choose_ai_focus(fossils: Dict[str, Fossil], rng, market_trend: str) -> Tuple[str, Optional[Fossil]]:
-    owned = list_owned_fossils(fossils, "ai")
-    if not owned:
-        return config.LAB_AUTHENTICATE, None
-
-    damaged = [f for f in owned if f.condition < 0.7]
-    if damaged:
-        return config.LAB_RESTORE, max(damaged, key=lambda f: f.base_value)
-
-    uncertain = [f for f in owned if f.authenticity != "verified"]
-    if uncertain:
-        return config.LAB_AUTHENTICATE, max(uncertain, key=lambda f: f.base_value)
-
-    return config.LAB_SHOWCASE, max(owned, key=lambda f: f.base_value)
-
-
 def choose_ai_focus_for_fossil(fossil: Fossil, rng, market_trend: str) -> str:
     if fossil.condition < 0.7:
         return config.LAB_RESTORE
@@ -68,5 +42,3 @@ def choose_ai_focus_for_fossil(fossil: Fossil, rng, market_trend: str) -> str:
     return config.LAB_SHOWCASE
 
 
-def lab_choice_label(choice: str) -> str:
-    return choice

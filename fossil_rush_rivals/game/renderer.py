@@ -93,19 +93,122 @@ def draw_title_screen(
     return rects
 
 
-def draw_journal_screen(surface: pygame.Surface, font: pygame.font.Font) -> list[pygame.Rect]:
-    panel_rect = pygame.Rect(120, 200, config.WINDOW_WIDTH - 240, 300)
-    _panel(surface, panel_rect)
-    draw_text(surface, "Field Journal", (panel_rect.x + 16, panel_rect.y + 16), font)
-    draw_text(surface, "Placeholder journal screen.", (panel_rect.x + 16, panel_rect.y + 56), font)
+def draw_journal_screen(
+    surface: pygame.Surface,
+    font: pygame.font.Font,
+    cards: list[dict],
+    selected: Optional[dict],
+    page: int,
+    view_title: str,
+    show_sets: bool,
+    show_individuals: bool,
+    view_mode: str,
+) -> tuple[
+    pygame.Rect,
+    pygame.Rect,
+    list[pygame.Rect],
+    list[str],
+    Optional[pygame.Rect],
+    Optional[pygame.Rect],
+    Optional[pygame.Rect],
+    Optional[pygame.Rect],
+]:
+    top_rect = pygame.Rect(60, 120, config.WINDOW_WIDTH - 120, 60)
+    left_rect = pygame.Rect(60, 200, 360, 720)
+    right_rect = pygame.Rect(left_rect.right + 20, 200, config.WINDOW_WIDTH - left_rect.right - 80, 720)
+    view_rect = pygame.Rect(right_rect.x + 20, right_rect.y + 20, right_rect.width - 40, 300)
+    desc_rect = pygame.Rect(right_rect.x + 20, view_rect.bottom + 20, right_rect.width - 40, 260)
 
-    labels = ["Back"]
-    rects = _button_rects(labels, start_y=panel_rect.y + 220)
-    for rect, label in zip(rects, labels):
+    for rect in [top_rect, left_rect, right_rect, view_rect, desc_rect]:
         _panel(surface, rect)
-        text = font.render(label, True, config.TEXT_COLOR)
-        surface.blit(text, text.get_rect(center=rect.center))
-    return rects
+
+    back_rect = pygame.Rect(top_rect.x + 12, top_rect.y + 12, 120, 36)
+    close_rect = pygame.Rect(top_rect.right - 132, top_rect.y + 12, 120, 36)
+    _panel(surface, back_rect)
+    _panel(surface, close_rect)
+    draw_text(surface, "Back", (back_rect.x + 36, back_rect.y + 8), font)
+    draw_text(surface, "Close View", (close_rect.x + 16, close_rect.y + 8), font)
+    draw_text(surface, view_title, (top_rect.x + 220, top_rect.y + 18), font)
+
+    set_header_rect = None
+    indiv_header_rect = None
+    cards_top = left_rect.y + 16
+    if view_mode == "root":
+        set_header_rect = pygame.Rect(left_rect.x + 16, left_rect.y + 12, left_rect.width - 32, 32)
+        _panel(surface, set_header_rect)
+        toggle = "-" if show_sets else "+"
+        draw_text(surface, f"{toggle} Sets", (set_header_rect.x + 12, set_header_rect.y + 6), font)
+        indiv_header_rect = pygame.Rect(left_rect.x + 16, left_rect.y + 52, left_rect.width - 32, 32)
+        _panel(surface, indiv_header_rect)
+        toggle = "-" if show_individuals else "+"
+        draw_text(surface, f"{toggle} Individuals", (indiv_header_rect.x + 12, indiv_header_rect.y + 6), font)
+        cards_top = left_rect.y + 96
+    elif view_mode.startswith("set:"):
+        header_rect = pygame.Rect(left_rect.x + 16, left_rect.y + 12, left_rect.width - 32, 32)
+        _panel(surface, header_rect)
+        draw_text(surface, "Set Pieces", (header_rect.x + 12, header_rect.y + 6), font)
+        cards_top = left_rect.y + 56
+
+    per_page = config.JOURNAL_CARDS_PER_PAGE
+    start = page * per_page
+    visible = cards[start : start + per_page]
+    card_rects: list[pygame.Rect] = []
+    card_keys: list[str] = []
+    col_width = (left_rect.width - 40) // 2
+    row_height = 120
+    for index, card in enumerate(visible):
+        col = index % 2
+        row = index // 2
+        card_x = left_rect.x + 16 + col * (col_width + 8)
+        card_y = cards_top + row * (row_height + 8)
+        card_rect = pygame.Rect(card_x, card_y, col_width, row_height)
+        _panel(surface, card_rect)
+        if selected and selected.get("key") == card.get("key"):
+            pygame.draw.rect(surface, config.HOVER_COLOR, card_rect, 2)
+        draw_text(surface, card.get("title", ""), (card_rect.x + 10, card_rect.y + 12), font)
+        draw_text(surface, card.get("subtitle", ""), (card_rect.x + 10, card_rect.y + 44), font)
+        card_rects.append(card_rect)
+        card_keys.append(card.get("key", ""))
+
+    prev_rect = None
+    next_rect = None
+    if len(cards) > per_page:
+        prev_rect = pygame.Rect(left_rect.x + 16, left_rect.bottom - 46, 100, 32)
+        next_rect = pygame.Rect(left_rect.right - 116, left_rect.bottom - 46, 100, 32)
+        _panel(surface, prev_rect)
+        _panel(surface, next_rect)
+        draw_text(surface, "Prev", (prev_rect.x + 28, prev_rect.y + 6), font)
+        draw_text(surface, "Next", (next_rect.x + 28, next_rect.y + 6), font)
+
+    draw_text(surface, "Fossil View", (view_rect.x + 16, view_rect.y + 16), font)
+    if not selected:
+        draw_text(surface, "Select an entry to inspect.", (desc_rect.x + 16, desc_rect.y + 16), font)
+    else:
+        draw_text(surface, selected.get("title", ""), (view_rect.x + 16, view_rect.y + 48), font)
+        draw_text(surface, selected.get("subtitle", ""), (desc_rect.x + 16, desc_rect.y + 16), font)
+        detail = selected.get("detail", "")
+        if detail:
+            draw_text(surface, detail, (desc_rect.x + 16, desc_rect.y + 44), font)
+        lines = selected.get("lines", [])
+        for index, line in enumerate(lines[:5]):
+            draw_text(surface, str(line), (desc_rect.x + 16, desc_rect.y + 72 + index * 24), font)
+        found_count = selected.get("found_count")
+        if found_count is not None:
+            count_text = f"Found: {found_count}"
+            count_surface = font.render(count_text, True, config.TEXT_COLOR)
+            count_rect = count_surface.get_rect(bottomright=(desc_rect.right - 12, desc_rect.bottom - 12))
+            surface.blit(count_surface, count_rect)
+
+    return (
+        back_rect,
+        close_rect,
+        card_rects,
+        card_keys,
+        prev_rect,
+        next_rect,
+        set_header_rect,
+        indiv_header_rect,
+    )
 
 
 def draw_side_panels(
@@ -165,6 +268,20 @@ def draw_action_bar(surface: pygame.Surface, font: pygame.font.Font, selected_ac
 def _panel(surface: pygame.Surface, rect: pygame.Rect) -> None:
     pygame.draw.rect(surface, config.PANEL_COLOR, rect)
     pygame.draw.rect(surface, config.GRID_LINE_COLOR, rect, 1)
+
+def _truncate_text(text: str, font: pygame.font.Font, max_width: int) -> str:
+    if not text:
+        return ""
+    if font.size(text)[0] <= max_width:
+        return text
+    ellipsis = "..."
+    available = max_width - font.size(ellipsis)[0]
+    if available <= 0:
+        return ellipsis
+    trimmed = text
+    while trimmed and font.size(trimmed)[0] > available:
+        trimmed = trimmed[:-1]
+    return f"{trimmed}{ellipsis}"
 
 
 def draw_lab_focus_screen(
@@ -236,8 +353,6 @@ def draw_lab_focus_screen(
         )
 
     return done_rect
-
-
 def draw_lab_result_screen(surface: pygame.Surface, font: pygame.font.Font, lines: list[str]) -> None:
     panel_rect = pygame.Rect(120, 220, config.WINDOW_WIDTH - 240, 260)
     _panel(surface, panel_rect)

@@ -12,6 +12,7 @@ from .laboratory import (
     list_owned_fossils,
 )
 from .market import MARKET_TRENDS, build_market_events, update_emotions
+from .journal import build_journal_view, get_entry_details, load_journal, save_journal, update_from_match
 from .renderer import (
     draw_action_bar,
     draw_grid,
@@ -44,6 +45,13 @@ def main() -> None:
     title_buttons = []
     final_buttons = []
     journal_buttons = []
+    journal_close_button = None
+    journal_card_rects: list[pygame.Rect] = []
+    journal_card_keys: list[str] = []
+    journal_prev_button = None
+    journal_next_button = None
+    journal_set_toggle = None
+    journal_individual_toggle = None
     lab_done_button = None
 
     while running:
@@ -64,16 +72,61 @@ def main() -> None:
                     if title_buttons[0].collidepoint(event.pos):
                         state = create_game_state(start_in_title=False)
                     elif title_buttons[1].collidepoint(event.pos):
+                        state.journal_data = load_journal()
+                        state.journal_selected_key = None
+                        state.journal_page = 0
+                        state.journal_view = "root"
+                        state.journal_show_sets = True
+                        state.journal_show_individuals = True
                         state.phase = config.PHASE_JOURNAL
                     elif title_buttons[2].collidepoint(event.pos):
                         running = False
-                elif state.phase == config.PHASE_JOURNAL and journal_buttons:
-                    if journal_buttons[0].collidepoint(event.pos):
+                elif state.phase == config.PHASE_JOURNAL:
+                    if journal_buttons and journal_buttons[0].collidepoint(event.pos):
                         state.phase = config.PHASE_TITLE
+                    elif journal_close_button and journal_close_button.collidepoint(event.pos):
+                        if state.journal_view.startswith("set:"):
+                            state.journal_view = "root"
+                            state.journal_page = 0
+                            state.journal_selected_key = None
+                        else:
+                            state.journal_selected_key = None
+                    elif journal_set_toggle and journal_set_toggle.collidepoint(event.pos):
+                        state.journal_show_sets = not state.journal_show_sets
+                        state.journal_page = 0
+                    elif journal_individual_toggle and journal_individual_toggle.collidepoint(event.pos):
+                        state.journal_show_individuals = not state.journal_show_individuals
+                        state.journal_page = 0
+                    elif journal_prev_button and journal_prev_button.collidepoint(event.pos):
+                        state.journal_page = max(0, state.journal_page - 1)
+                    elif journal_next_button and journal_next_button.collidepoint(event.pos):
+                        state.journal_page += 1
+                    else:
+                        for rect, key in zip(journal_card_rects, journal_card_keys):
+                            if rect.collidepoint(event.pos):
+                                if key.startswith("set:"):
+                                    state.journal_view = key
+                                    state.journal_selected_key = None
+                                    state.journal_page = 0
+                                else:
+                                    state.journal_selected_key = key
+                                break
                 elif state.phase == config.PHASE_MARKET and state.market_substate == config.MARKET_SUB_FINAL:
                     if final_buttons:
                         if final_buttons[0].collidepoint(event.pos):
-                            state = create_game_state(start_in_title=True)
+                            state.journal_data = update_from_match(
+                                state.journal_data,
+                                state.fossils,
+                                state.player_score,
+                                state.market_trend,
+                            )
+                            save_journal(state.journal_data)
+                            state.journal_selected_key = None
+                            state.journal_page = 0
+                            state.journal_view = "root"
+                            state.journal_show_sets = True
+                            state.journal_show_individuals = True
+                            state.phase = config.PHASE_JOURNAL
                         elif final_buttons[1].collidepoint(event.pos):
                             state = create_game_state(start_in_title=False)
                         elif final_buttons[2].collidepoint(event.pos):
@@ -86,7 +139,13 @@ def main() -> None:
                         state.narration = "No actions left for the player."
                     else:
                         tile = state.grid.tile_at_pixel(event.pos)
-                        if tile and can_target_tile(tile, state.selected_action, "player", state.grid):
+                        if tile and can_target_tile(
+                            tile,
+                            state.selected_action,
+                            "player",
+                            state.grid,
+                            state.fossils,
+                        ):
                             if state.selected_action == config.ACTION_RUSH and state.player_rush_left <= 0:
                                 state.narration = "No rush digs left for the player."
                                 continue
@@ -155,8 +214,17 @@ def main() -> None:
                                 state.lab_selected_fossil_index = next_indices[0] if next_indices else available_indices[-1]
                                 target_fossil = player_fossils[state.lab_selected_fossil_index]
                                 state.lab_focus_player.setdefault(target_fossil.fossil_id, config.LAB_CHOICES[0])
-                        elif event.key == pygame.K_RETURN and player_fossils:
-                            state.lab_substate = config.LAB_SUB_CONFIRM
+                        elif event.key == pygame.K_RETURN:
+                            if player_fossils:
+                                state.lab_substate = config.LAB_SUB_CONFIRM
+                            else:
+                                state.lab_result_lines = ["No fossils to process."]
+                                state.lab_ai_results = []
+                                ai_fossils = list_owned_fossils(state.fossils, "ai")
+                                for fossil in ai_fossils:
+                                    focus = state.lab_focus_ai.get(fossil.fossil_id, config.LAB_CHOICES[0])
+                                    state.lab_ai_results.append(apply_lab_focus(fossil, focus, state.rng))
+                                state.lab_substate = config.LAB_SUB_RESULT
                     elif state.lab_substate == config.LAB_SUB_CONFIRM:
                         if event.key == pygame.K_RETURN:
                             result_lines = []
@@ -225,6 +293,7 @@ def main() -> None:
                     state.grid,
                     "ai",
                     state.rng,
+                    fossils=state.fossils,
                     rush_left=state.ai_rush_left,
                     claim_left=state.ai_claim_left,
                     remaining_actions=state.ai_actions_left,
@@ -272,6 +341,8 @@ def main() -> None:
             for fossil in ai_fossils:
                 focus = choose_ai_focus_for_fossil(fossil, state.rng, state.market_trend)
                 state.lab_focus_ai[fossil.fossil_id] = focus
+                if config.AI_DEBUG_LOG:
+                    print(f"Debug: Rival lab choice {focus} for {fossil.name}.")
 
         screen.fill(config.BACKGROUND_COLOR)
         draw_header(screen, title_font, label_font, state.phase)
@@ -280,7 +351,47 @@ def main() -> None:
             final_buttons = []
             journal_buttons = []
         elif state.phase == config.PHASE_JOURNAL:
-            journal_buttons = draw_journal_screen(screen, label_font)
+            cards, view_title = build_journal_view(
+                state.journal_data,
+                state.journal_view,
+                state.journal_show_sets,
+                state.journal_show_individuals,
+            )
+            per_page = config.JOURNAL_CARDS_PER_PAGE
+            max_page = 0
+            if cards:
+                max_page = (len(cards) - 1) // per_page
+            if state.journal_page > max_page:
+                state.journal_page = max_page
+            selected = get_entry_details(state.journal_data, state.journal_selected_key)
+            (
+                back_rect,
+                close_rect,
+                card_rects,
+                card_keys,
+                prev_rect,
+                next_rect,
+                set_toggle_rect,
+                indiv_toggle_rect,
+            ) = draw_journal_screen(
+                screen,
+                label_font,
+                cards,
+                selected,
+                state.journal_page,
+                view_title,
+                state.journal_show_sets,
+                state.journal_show_individuals,
+                state.journal_view,
+            )
+            journal_buttons = [back_rect]
+            journal_close_button = close_rect
+            journal_card_rects = card_rects
+            journal_card_keys = card_keys
+            journal_prev_button = prev_rect
+            journal_next_button = next_rect
+            journal_set_toggle = set_toggle_rect
+            journal_individual_toggle = indiv_toggle_rect
             title_buttons = []
             final_buttons = []
         elif state.phase == config.PHASE_EXCAVATION:

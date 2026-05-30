@@ -1,7 +1,7 @@
 {
   "seed": 12345,
   "samples": 50000,
-  "feature_count": 14,
+  "feature_count": 16,
   "feature_names": [
     "x_norm",
     "y_norm",
@@ -16,9 +16,22 @@
     "surveyed_neighbors",
     "dist_survey",
     "dist_player_reveal",
-    "remaining_actions"
+    "remaining_actions",
+    "dig_progress",
+    "dig_required"
   ],
-  "notes": "Synthetic dataset with fossil and set-piece reward shaping.",
+  "notes": "Synthetic dataset with simulated player-versus-rival excavation scenarios, large fossil dig requirements, rush damage risk, and reward shaping.",
+  "scenarios": [
+    "survey_vs_survey",
+    "survey_vs_balanced",
+    "survey_vs_rush",
+    "balanced_vs_survey",
+    "balanced_vs_balanced",
+    "balanced_vs_rush",
+    "rush_vs_survey",
+    "rush_vs_balanced",
+    "rush_vs_rush"
+  ],
   "exported": true,
   "export_notes": "Exported model payloads for runtime loading."
 }

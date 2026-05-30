@@ -49,7 +49,7 @@ def _set_completed(fossils: Dict[str, Fossil], set_id: str, owner: str) -> bool:
         return False
     for fossil_id, _name in pieces:
         fossil = fossils.get(fossil_id)
-        if not fossil or fossil.owner != owner:
+        if not fossil or fossil.owner != owner or fossil.broken:
             return False
     return True
 
@@ -69,6 +69,8 @@ def _auth_value(authenticity: str, verified: bool) -> str:
 
 
 def fossil_value(fossil: Fossil, trend: str) -> int:
+    if fossil.broken:
+        return 0
     rarity_mult = RARITY_MULTIPLIER.get(fossil.rarity, 1.0)
     condition_mult = _condition_multiplier(fossil.condition)
     authenticity = _auth_value(fossil.authenticity, fossil.verified)

@@ -1,0 +1,59 @@
+{
+  "entries": {
+    "fossil_crinoid": {
+      "name": "Crinoid Stem",
+      "code": "CS",
+      "discovered": 1,
+      "last_found": "2026-05-30"
+    },
+    "fossil_shark_tooth": {
+      "name": "Shark Tooth",
+      "code": "ST",
+      "discovered": 1,
+      "last_found": "2026-05-30"
+    },
+    "fossil_coprolite": {
+      "name": "Coprolite",
+      "code": "CO",
+      "discovered": 1,
+      "last_found": "2026-05-30"
+    },
+    "set_trike_horn": {
+      "name": "Triceratops Horn Core",
+      "code": "THC",
+      "discovered": 1,
+      "last_found": "2026-05-30"
+    },
+    "fossil_bone_fragment": {
+      "name": "Small Bone Fragment",
+      "description": "Small fossil bone shard with rough cortical texture.",
+      "discovered": 1,
+      "last_found": "2026-05-30",
+      "restoration_notes": "Consolidant improves durability without altering shape."
+    },
+    "set_trike_frill": {
+      "name": "Triceratops Frill Fragment",
+      "description": "Frill fragment with distinctive bony ridges.",
+      "discovered": 1,
+      "last_found": "2026-05-30",
+      "year_discovered": "1889",
+      "facts": "Frills may have served for species recognition.",
+      "authenticated": true
+    },
+    "set_mosasaur_paddle": {
+      "name": "Mosasaur Paddle Bone",
+      "description": "Paddle bone fragment from a mosasaur set.",
+      "discovered": 1,
+      "last_found": "2026-05-30",
+      "restoration_notes": "Edge support prevents stress fractures."
+    }
+  },
+  "sets": {},
+  "best_auction": 600,
+  "market_trends": {
+    "Museum Night": 3,
+    "Research Grant": 1,
+    "Fraud Panic": 1
+  },
+  "last_updated": "2026-05-30"
+}

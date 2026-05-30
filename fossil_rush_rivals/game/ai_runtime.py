@@ -15,6 +15,7 @@ from .ai_models import (
 from . import config
 from .excavation import can_target_tile
 from .grid import Grid, Tile
+from .fossils import Fossil
 
 
 @dataclass
@@ -72,11 +73,11 @@ def load_runtime_models(data_dir: Optional[Path] = None) -> RuntimeModels:
     return _RUNTIME_MODELS
 
 
-def _valid_tiles(grid: Grid, action: str, actor: str) -> List[Tile]:
+def _valid_tiles(grid: Grid, action: str, actor: str, fossils: Dict[str, Fossil] | None) -> List[Tile]:
     tiles: List[Tile] = []
     for row in grid.tiles:
         for tile in row:
-            if can_target_tile(tile, action, actor, grid):
+            if can_target_tile(tile, action, actor, grid, fossils):
                 tiles.append(tile)
     return tiles
 
@@ -144,6 +145,12 @@ def _tile_feature_vector(
     remaining_norm = 0.0
     if remaining_actions is not None:
         remaining_norm = remaining_actions / max(config.AI_ACTIONS, 1)
+    dig_required = max(tile.dig_required, 1)
+    dig_progress_norm = 0.0
+    dig_required_norm = 0.0
+    if tile.dig_progress > 0:
+        dig_progress_norm = min(tile.dig_progress, dig_required) / dig_required
+        dig_required_norm = min(dig_required, 3) / 3.0
     return [
         x_norm,
         y_norm,
@@ -159,6 +166,8 @@ def _tile_feature_vector(
         dist_survey,
         dist_player_reveal,
         remaining_norm,
+        dig_progress_norm,
+        dig_required_norm,
     ]
 
 
@@ -177,6 +186,12 @@ def _tile_feature_dict(
     remaining_norm = 0.0
     if remaining_actions is not None:
         remaining_norm = remaining_actions / max(config.AI_ACTIONS, 1)
+    dig_required = max(tile.dig_required, 1)
+    dig_progress_norm = 0.0
+    dig_required_norm = 0.0
+    if tile.dig_progress > 0:
+        dig_progress_norm = min(tile.dig_progress, dig_required) / dig_required
+        dig_required_norm = min(dig_required, 3) / 3.0
     return {
         "x_norm": tile.x / max(config.GRID_COLS - 1, 1),
         "y_norm": tile.y / max(config.GRID_ROWS - 1, 1),
@@ -192,6 +207,8 @@ def _tile_feature_dict(
         "dist_survey": dist_survey,
         "dist_player_reveal": dist_player_reveal,
         "remaining_actions": remaining_norm,
+        "dig_progress": dig_progress_norm,
+        "dig_required": dig_required_norm,
     }
 
 
@@ -211,6 +228,7 @@ def choose_action(
     grid: Grid,
     actor: str,
     rng,
+    fossils: Dict[str, Fossil] | None = None,
     rush_left: int | None = None,
     claim_left: int | None = None,
     remaining_actions: int | None = None,
@@ -227,7 +245,7 @@ def choose_action(
         actions.remove(config.ACTION_CLAIM)
     valid_actions = []
     for action in actions:
-        tiles = _valid_tiles(grid, action, actor)
+        tiles = _valid_tiles(grid, action, actor, fossils)
         if tiles:
             valid_actions.append((action, tiles))
     if not valid_actions:
