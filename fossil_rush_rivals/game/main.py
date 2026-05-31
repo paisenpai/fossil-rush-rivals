@@ -466,11 +466,14 @@ def main() -> None:
                     action_key = state.ai_target_action
                     if now >= state.ai_action_cooldown_until:
                         if action_key == config.ACTION_SURVEY and now < state.ai_survey_ready_at:
-                            pass
+                            state.ai_target_action = None
+                            state.ai_target_pos = None
                         elif action_key == config.ACTION_RUSH and state.ai_rush_left <= 0:
-                            pass
+                            state.ai_target_action = None
+                            state.ai_target_pos = None
                         elif action_key == config.ACTION_CLAIM and state.ai_claim_left <= 0:
-                            pass
+                            state.ai_target_action = None
+                            state.ai_target_pos = None
                         else:
                             tile = state.grid.get_tile(ax, ay)
                             if tile and can_target_tile(tile, action_key, "ai", state.grid, state.fossils):
@@ -491,6 +494,9 @@ def main() -> None:
                                     state.ai_claim_left -= 1
                                 elif action_key == config.ACTION_SURVEY:
                                     state.ai_survey_ready_at = now + config.SURVEY_COOLDOWN_MS
+                                state.ai_target_action = None
+                                state.ai_target_pos = None
+                            else:
                                 state.ai_target_action = None
                                 state.ai_target_pos = None
 
