@@ -208,6 +208,8 @@ def main() -> None:
                                 state.rng,
                                 state.fossils,
                             )
+                            state.player_last_action = action_key
+                            state.player_last_action_ticks = now
                             state.player_action_cooldown_until = now + config.ACTION_COOLDOWNS_MS[action_key]
                             if action_key == config.ACTION_RUSH:
                                 state.player_rush_left -= 1
@@ -434,6 +436,8 @@ def main() -> None:
                                     state.rng,
                                     state.fossils,
                                 )
+                                state.ai_last_action = action_key
+                                state.ai_last_action_ticks = now
                                 state.ai_action_cooldown_until = now + config.ACTION_COOLDOWNS_MS[action_key]
                                 if action_key == config.ACTION_RUSH:
                                     state.ai_rush_left -= 1

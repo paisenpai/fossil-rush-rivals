@@ -15,6 +15,71 @@ BACKGROUND_SPRITE: Optional[pygame.Surface] = None
 _loaded = False
 
 
+def _build_dirt_tile(kind: str) -> pygame.Surface:
+    size = config.TILE_SIZE
+    surface = pygame.Surface((size, size), pygame.SRCALPHA)
+    if kind == "hidden":
+        base = (96, 62, 38)
+        highlight = (118, 78, 48)
+    elif kind == "surveyed":
+        base = (106, 70, 42)
+        highlight = (132, 90, 55)
+    elif kind == "partial":
+        base = (106, 70, 42)
+        highlight = (142, 102, 64)
+    else:
+        base = (120, 80, 50)
+        highlight = (148, 106, 68)
+
+    surface.fill(base)
+    for inset in (2, 6, 10):
+        pygame.draw.rect(surface, highlight, pygame.Rect(inset, inset, size - inset * 2, size - inset * 2), 1)
+
+    if kind == "partial":
+        chip_color = (190, 170, 120)
+        pygame.draw.rect(surface, chip_color, pygame.Rect(size // 2 - 6, size // 2 - 4, 12, 6))
+        pygame.draw.rect(surface, chip_color, pygame.Rect(size // 2 - 2, size // 2 + 4, 6, 3))
+
+    return surface
+
+
+def _build_obstacle_tile(kind: str) -> pygame.Surface:
+    size = config.TILE_SIZE
+    surface = pygame.Surface((size, size), pygame.SRCALPHA)
+    top_color = (120, 110, 92)
+    mid_color = (92, 84, 70)
+    cliff_color = (64, 58, 48)
+    surface.fill(mid_color)
+    pygame.draw.rect(surface, top_color, pygame.Rect(0, 0, size, size // 3))
+    pygame.draw.rect(surface, cliff_color, pygame.Rect(0, size // 2, size, size // 2))
+    edge = 2
+
+    if "edge_n" in kind:
+        pygame.draw.rect(surface, top_color, pygame.Rect(0, 0, size, edge))
+    if "edge_s" in kind:
+        pygame.draw.rect(surface, cliff_color, pygame.Rect(0, size - edge, size, edge))
+    if "edge_w" in kind:
+        pygame.draw.rect(surface, cliff_color, pygame.Rect(0, 0, edge, size))
+    if "edge_e" in kind:
+        pygame.draw.rect(surface, cliff_color, pygame.Rect(size - edge, 0, edge, size))
+
+    if "corner" in kind:
+        pygame.draw.rect(surface, top_color, pygame.Rect(0, 0, size // 2, size // 2))
+        pygame.draw.rect(surface, cliff_color, pygame.Rect(size // 2, size // 2, size // 2, size // 2))
+
+    return surface
+
+
+def _build_fossil_fragment() -> pygame.Surface:
+    size = config.TILE_SIZE
+    surface = pygame.Surface((size, size), pygame.SRCALPHA)
+    base = (210, 190, 140)
+    dark = (160, 140, 98)
+    pygame.draw.rect(surface, base, pygame.Rect(size // 2 - 6, size // 2 - 4, 12, 8))
+    pygame.draw.rect(surface, dark, pygame.Rect(size // 2 - 5, size // 2 - 3, 10, 6), 1)
+    return surface
+
+
 def load_sprites() -> None:
     """Loads and caches all sprite assets. Safe to call multiple times."""
     global _loaded, BACKGROUND_SPRITE, FACE_SPRITES, BACKGROUND_SPRITES
@@ -28,17 +93,16 @@ def load_sprites() -> None:
 
     # Load Characters
     # Expected characters and their anim states
-    directional_states = []
-    for direction in config.DIRECTION_KEYS:
-        for frames in config.ANIMATION_FRAMES.values():
-            for frame in frames:
-                directional_states.append(f"{direction}_{frame}")
-
-    legacy_states = ["front_idle", "back_idle", "left_idle", "right_idle", "walk_1", "walk_2", "digging"]
+    movement_states = ["walk_n", "walk_ne", "walk_e", "walk_se", "walk_s", "walk_w"]
+    action_states = [
+        "dig_n", "dig_s",
+        "claim_n", "claim_s",
+        "survey_n", "survey_s",
+    ]
 
     chars_config = {
-        "player": directional_states + legacy_states,
-        "rival": directional_states + legacy_states,
+        "player": movement_states + action_states,
+        "rival": movement_states + action_states,
         "auctioneer": ["front_idle", "left_idle", "right_idle", "gesture"],
     }
 
@@ -82,6 +146,23 @@ def load_sprites() -> None:
         "obstacle_corner_sw",
     ]
 
+    procedural_items = {
+        "hidden_dirt": lambda: _build_dirt_tile("hidden"),
+        "surveyed_dirt": lambda: _build_dirt_tile("surveyed"),
+        "surveyed_partial": lambda: _build_dirt_tile("partial"),
+        "empty_dirt": lambda: _build_dirt_tile("empty"),
+        "obstacle_center": lambda: _build_obstacle_tile("center"),
+        "obstacle_edge_n": lambda: _build_obstacle_tile("edge_n"),
+        "obstacle_edge_e": lambda: _build_obstacle_tile("edge_e"),
+        "obstacle_edge_s": lambda: _build_obstacle_tile("edge_s"),
+        "obstacle_edge_w": lambda: _build_obstacle_tile("edge_w"),
+        "obstacle_corner_ne": lambda: _build_obstacle_tile("corner_ne"),
+        "obstacle_corner_nw": lambda: _build_obstacle_tile("corner_nw"),
+        "obstacle_corner_se": lambda: _build_obstacle_tile("corner_se"),
+        "obstacle_corner_sw": lambda: _build_obstacle_tile("corner_sw"),
+        "fossil_fragment": _build_fossil_fragment,
+    }
+
     for item_key in item_files:
         path = os.path.join(items_dir, f"{item_key}.png")
         if os.path.exists(path):
@@ -91,10 +172,21 @@ def load_sprites() -> None:
                 # Cache scaled 32x32 version for the excavation grid
                 scaled = pygame.transform.smoothscale(surf, (config.TILE_SIZE, config.TILE_SIZE))
                 ITEM_SPRITES_SCALED[item_key] = scaled
+                continue
             except Exception as e:
                 print(f"Warning: Failed to load item sprite {path}: {e}")
+
+        if item_key in procedural_items:
+            surf = procedural_items[item_key]()
+            ITEM_SPRITES[item_key] = surf
+            ITEM_SPRITES_SCALED[item_key] = surf
         else:
             print(f"Warning: Item sprite file {path} not found.")
+
+    for key in ("hidden_dirt", "surveyed_dirt", "surveyed_partial", "empty_dirt"):
+        surface = _build_dirt_tile("partial" if key == "surveyed_partial" else key.split("_")[0])
+        ITEM_SPRITES[key] = surface
+        ITEM_SPRITES_SCALED[key] = surface
 
     # Load Dynamic backgrounds
     bg_dir = "assets/sprites/backgrounds"

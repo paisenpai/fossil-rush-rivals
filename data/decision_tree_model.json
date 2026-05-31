@@ -18,9 +18,20 @@
     "surveyed_neighbors": 0.0,
     "dist_survey": 0.0,
     "dist_player_reveal": 0.0,
-    "remaining_actions": 0.0,
+    "time_left": 0.0,
     "dig_progress": 0.0,
-    "dig_required": 0.0
+    "dig_required": 0.0,
+    "actor_x": 0.0,
+    "actor_y": 0.0,
+    "actor_moving": 0.0,
+    "facing_n": 0.0,
+    "facing_ne": 0.0,
+    "facing_e": 0.0,
+    "facing_se": 0.0,
+    "facing_s": 0.0,
+    "facing_sw": 0.0,
+    "facing_w": 0.0,
+    "facing_nw": 0.0
   },
   "rules": [
     {
@@ -42,8 +53,19 @@
     "surveyed_neighbors",
     "dist_survey",
     "dist_player_reveal",
-    "remaining_actions",
+    "time_left",
     "dig_progress",
-    "dig_required"
+    "dig_required",
+    "actor_x",
+    "actor_y",
+    "actor_moving",
+    "facing_n",
+    "facing_ne",
+    "facing_e",
+    "facing_se",
+    "facing_s",
+    "facing_sw",
+    "facing_w",
+    "facing_nw"
   ]
 }

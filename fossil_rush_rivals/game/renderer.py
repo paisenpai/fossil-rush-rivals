@@ -233,11 +233,11 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
             # Apply colour overlay on top of sprite — brown by default, green on hover
             tint_surf = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
             if is_hovered and not tile.obstacle:
-                # Vivid green hover tint
-                tint_surf.fill((60, 200, 80, 90))
+                # Warm gold hover tint for cleaner placeholders
+                tint_surf.fill((210, 170, 70, 90))
                 surface.blit(tint_surf, rect.topleft)
-                # Green outline
-                pygame.draw.rect(surface, (60, 210, 60), rect, 2)
+                # Gold outline
+                pygame.draw.rect(surface, (235, 195, 80), rect, 2)
             elif tile.claimed_by:
                 claim_color = (60, 200, 80, 80) if tile.claimed_by == "player" else (210, 60, 60, 80)
                 tint_surf.fill(claim_color)
@@ -252,49 +252,64 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
 
 def draw_characters(surface: pygame.Surface, font: pygame.font.Font, state) -> None:
     now = pygame.time.get_ticks()
+    def _sprite_direction(facing: str) -> str:
+        if facing in {"n", "e", "s", "w"}:
+            return facing
+        if facing in {"ne", "nw"}:
+            return "n"
+        if facing in {"se", "sw"}:
+            return "s"
+        return "s"
+
+    def _action_pose(action_key: Optional[str]) -> Optional[str]:
+        if action_key == config.ACTION_CAREFUL or action_key == config.ACTION_RUSH:
+            return "dig"
+        if action_key == config.ACTION_CLAIM:
+            return "claim"
+        if action_key == config.ACTION_SURVEY:
+            return "survey"
+        return None
+
     actor_settings = [
         (
             "player",
             state.player_pos,
             state.player_facing,
             (now - state.player_last_move_ticks) < config.MOVE_COOLDOWN_MS,
+            state.player_last_action,
+            state.player_last_action_ticks,
         ),
         (
             "rival",
             state.ai_pos,
             state.ai_facing,
             (now - state.ai_last_move_ticks) < config.MOVE_COOLDOWN_MS,
+            state.ai_last_action,
+            state.ai_last_action_ticks,
         ),
     ]
 
-    for actor_key, (col, row), facing, is_moving in actor_settings:
+    for actor_key, (col, row), facing, is_moving, last_action, last_action_ticks in actor_settings:
         tile_rect = pygame.Rect(
             config.GRID_LEFT + col * config.TILE_SIZE,
             config.GRID_TOP + row * config.TILE_SIZE,
             config.TILE_SIZE,
             config.TILE_SIZE,
         )
-        anim = "walk" if is_moving else "idle"
-        frames = config.ANIMATION_FRAMES.get(anim, ["idle_0"])
-        frame_ms = config.ANIMATION_FRAME_MS.get(anim, 200)
-        frame_index = (now // frame_ms) % max(len(frames), 1)
-        frame_key = frames[frame_index]
-        sprite_key = f"{facing}_{frame_key}"
+        direction = _sprite_direction(facing)
+        pose = None
+        if last_action and (now - last_action_ticks) <= config.ACTION_POSE_MS:
+            pose = _action_pose(last_action)
+        if not pose:
+            pose = "walk"
 
+        if pose in {"dig", "claim", "survey"}:
+            direction = "n" if facing in {"n", "ne", "nw"} else "s"
+
+        sprite_key = f"{pose}_{direction}"
         sprite = sprites.get_character_sprite(actor_key, sprite_key)
-        if not sprite:
-            fallback = {
-                "n": "back_idle",
-                "ne": "back_idle",
-                "e": "right_idle",
-                "se": "right_idle",
-                "s": "front_idle",
-                "sw": "left_idle",
-                "w": "left_idle",
-                "nw": "left_idle",
-            }
-            legacy_key = fallback.get(facing, "front_idle")
-            sprite = sprites.get_character_sprite(actor_key, legacy_key)
+        if not sprite and direction != "s":
+            sprite = sprites.get_character_sprite(actor_key, f"{pose}_s")
 
         if sprite:
             scaled = pygame.transform.smoothscale(sprite, (config.TILE_SIZE, config.TILE_SIZE))
@@ -378,7 +393,7 @@ def draw_title_screen(
     surface.blit(title_surface, title_pos)
 
     # Draw the Player character on the title screen for a premium first impression!
-    player_sprite = sprites.get_character_sprite("player", "front_idle")
+    player_sprite = sprites.get_character_sprite("player", "walk_s")
     if player_sprite:
         scaled_player = pygame.transform.smoothscale(player_sprite, (110, 160))
         player_x = (config.WINDOW_WIDTH - 110) // 2

@@ -30,6 +30,10 @@ class GameState:
     ai_move_cooldown_until: int
     player_action_cooldown_until: int
     ai_action_cooldown_until: int
+    player_last_action: Optional[str]
+    ai_last_action: Optional[str]
+    player_last_action_ticks: int
+    ai_last_action_ticks: int
     player_survey_ready_at: int
     ai_survey_ready_at: int
     ai_next_think_at: int
@@ -99,6 +103,10 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         ai_move_cooldown_until=0,
         player_action_cooldown_until=0,
         ai_action_cooldown_until=0,
+        player_last_action=None,
+        ai_last_action=None,
+        player_last_action_ticks=0,
+        ai_last_action_ticks=0,
         player_survey_ready_at=0,
         ai_survey_ready_at=0,
         ai_next_think_at=0,
