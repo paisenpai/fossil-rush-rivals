@@ -7,14 +7,6 @@ def manual_adaboost_samme(X, y, n_estimators=10):
     K = len(np.unique(y))
     weights = np.ones(n_samples) / n_samples
     alphas = []
-    
-    # Subsample for faster training
-    if n_samples > 2000:
-        indices = np.random.choice(n_samples, 2000, replace=False)
-        X = X[indices]
-        y = y[indices]
-        n_samples = len(X)
-        weights = np.ones(n_samples) / n_samples
 
     for _ in range(n_estimators):
         best_err = float('inf')

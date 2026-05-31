@@ -114,9 +114,7 @@ def main() -> None:
 
     # Manual Decision Tree
     tree = DecisionTree(max_depth=3)
-    # Using a subset of data for faster training since this is pure python
-    indices = np.random.choice(len(features), min(2000, len(features)), replace=False)
-    tree.fit(features[indices], labels[indices], feature_names)
+    tree.fit(features, labels, feature_names)
 
     payload = {
         "node_count": tree.node_count,

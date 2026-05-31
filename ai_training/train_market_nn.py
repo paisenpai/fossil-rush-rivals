@@ -12,14 +12,6 @@ def sigmoid_deriv(x):
 def manual_mlp(X, y, hidden_sizes=(8, 4), epochs=200, lr=0.05, seed=12345):
     rng = np.random.default_rng(seed)
     n_samples, n_features = X.shape
-    
-    # Subsample for speed
-    if n_samples > 2000:
-        indices = rng.choice(n_samples, 2000, replace=False)
-        X = X[indices]
-        y = y[indices]
-        n_samples = len(X)
-        
     y = y.reshape(-1, 1)
 
     layer_sizes = [n_features, hidden_sizes[0], hidden_sizes[1], 1]

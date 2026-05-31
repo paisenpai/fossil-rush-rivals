@@ -6,12 +6,6 @@ def gmm_em(X, k=3, max_iters=30, seed=12345):
     rng = np.random.default_rng(seed)
     n_samples, n_features = X.shape
     
-    # Subsample for faster training
-    if n_samples > 5000:
-        indices = rng.choice(n_samples, 5000, replace=False)
-        X = X[indices]
-        n_samples = len(X)
-    
     # Initialize
     indices = rng.choice(n_samples, k, replace=False)
     means = X[indices].copy()
