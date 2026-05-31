@@ -4,7 +4,7 @@ import pygame
 
 from . import config
 from .ai_runtime import choose_action, load_runtime_models
-from .excavation import advance_claims, apply_action, can_target_tile, next_turn_label
+from .excavation import advance_claims, apply_action, can_target_tile
 from .game_state import create_game_state
 from .laboratory import (
     apply_lab_focus,
@@ -26,7 +26,8 @@ from .renderer import (
     draw_market_intro_screen,
     draw_journal_screen,
     draw_narration,
-    draw_side_panels,
+    draw_excavation_hud,
+    draw_characters,
     draw_title_screen,
 )
 from .ui import build_fonts
@@ -60,13 +61,36 @@ def main() -> None:
     lab_done_button = None
     action_bar_buttons: list[tuple[pygame.Rect, str]] = []
 
+    def _direction_from_delta(dx: int, dy: int) -> str:
+        mapping = {
+            (0, -1): "n",
+            (1, -1): "ne",
+            (1, 0): "e",
+            (1, 1): "se",
+            (0, 1): "s",
+            (-1, 1): "sw",
+            (-1, 0): "w",
+            (-1, -1): "nw",
+        }
+        return mapping.get((dx, dy), "s")
+
+    def _can_move_to(actor: str, col: int, row: int) -> bool:
+        tile = state.grid.get_tile(col, row)
+        if not tile:
+            return False
+        if tile.obstacle:
+            return False
+        if tile.claimed_by is not None and tile.claimed_by != actor and tile.claim_ms_left > 0:
+            return False
+        return True
+
     while running:
-        clock.tick(config.FPS)
+        delta_ms = clock.tick(config.FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEMOTION:
-                if state.phase == config.PHASE_EXCAVATION and state.current_turn == "player":
+                if state.phase == config.PHASE_EXCAVATION:
                     tile = state.grid.tile_at_pixel(event.pos)
                     state.hover_tile = tile
                     if tile:
@@ -137,68 +161,62 @@ def main() -> None:
                             state = create_game_state(start_in_title=False)
                         elif final_buttons[2].collidepoint(event.pos):
                             state = create_game_state(start_in_title=True)
-                elif state.phase == config.PHASE_EXCAVATION and state.current_turn == "player":
-                    # Action bar button clicks
-                    for btn_rect, action_key in action_bar_buttons:
-                        if btn_rect.collidepoint(event.pos):
-                            state.selected_action = action_key
-                            break
-                    else:
-                        if state.player_actions_left <= 0:
-                            state.narration = "No actions left for the player."
-                        else:
-                            tile = state.grid.tile_at_pixel(event.pos)
-                            if tile and can_target_tile(
-                                tile,
-                                state.selected_action,
-                                "player",
-                                state.grid,
-                                state.fossils,
-                            ):
-                                if state.selected_action == config.ACTION_RUSH and state.player_rush_left <= 0:
-                                    state.narration = "No rush digs left for the player."
-                                    continue
-                                if state.selected_action == config.ACTION_CLAIM and state.player_claim_left <= 0:
-                                    state.narration = "No claim zones left for the player."
-                                    continue
-
-                                # Record dig animation ticks
-                                state.player_dig_ticks = pygame.time.get_ticks()
-
-                                state.narration = apply_action(
-                                    state.selected_action,
-                                    state.grid,
-                                    tile,
-                                    "player",
-                                    state.rng,
-                                    state.fossils,
-                                )
-                                state.player_actions_left -= 1
-                                if state.selected_action == config.ACTION_RUSH:
-                                    state.player_rush_left -= 1
-                                elif state.selected_action == config.ACTION_CLAIM:
-                                    state.player_claim_left -= 1
-                                advance_claims(state.grid)
-                                state.current_turn = next_turn_label(state.current_turn)
-                                if state.current_turn == "ai":
-                                    state.ai_think_start = pygame.time.get_ticks()
-                                    state.ai_think_delay = state.rng.randint(1000, 5000)
-                                    state.narration = "Rival AI is thinking..."
-                            elif tile:
-                                state.narration = "That tile is not a valid target."
                 elif state.phase == config.PHASE_LAB and state.lab_substate == config.LAB_SUB_CHOOSE_FOCUS:
                     if lab_done_button and lab_done_button.collidepoint(event.pos):
                         state.lab_substate = config.LAB_SUB_CONFIRM
             elif event.type == pygame.KEYDOWN:
                 if state.phase == config.PHASE_EXCAVATION:
-                    if event.key == pygame.K_1:
-                        state.selected_action = config.ACTION_SURVEY
-                    elif event.key == pygame.K_2:
-                        state.selected_action = config.ACTION_CAREFUL
-                    elif event.key == pygame.K_3:
-                        state.selected_action = config.ACTION_RUSH
-                    elif event.key == pygame.K_4:
-                        state.selected_action = config.ACTION_CLAIM
+                    now = pygame.time.get_ticks()
+                    action_key = None
+                    if event.key == pygame.K_SPACE:
+                        if event.mod & pygame.KMOD_SHIFT:
+                            action_key = config.ACTION_RUSH
+                        else:
+                            action_key = config.ACTION_CAREFUL
+                    elif event.key == pygame.K_e:
+                        action_key = config.ACTION_SURVEY
+                    elif event.key == pygame.K_q:
+                        action_key = config.ACTION_CLAIM
+
+                    if action_key:
+                        if now < state.player_action_cooldown_until:
+                            state.narration = "You are still recovering from your last action."
+                            continue
+                        if action_key == config.ACTION_SURVEY and now < state.player_survey_ready_at:
+                            state.narration = "Survey is recharging."
+                            continue
+                        if action_key == config.ACTION_RUSH and state.player_rush_left <= 0:
+                            state.narration = "No rush digs left for the player."
+                            continue
+                        if action_key == config.ACTION_CLAIM and state.player_claim_left <= 0:
+                            state.narration = "No claim zones left for the player."
+                            continue
+
+                        tile = state.grid.get_tile(*state.player_pos)
+                        if tile and can_target_tile(
+                            tile,
+                            action_key,
+                            "player",
+                            state.grid,
+                            state.fossils,
+                        ):
+                            state.narration = apply_action(
+                                action_key,
+                                state.grid,
+                                tile,
+                                "player",
+                                state.rng,
+                                state.fossils,
+                            )
+                            state.player_action_cooldown_until = now + config.ACTION_COOLDOWNS_MS[action_key]
+                            if action_key == config.ACTION_RUSH:
+                                state.player_rush_left -= 1
+                            elif action_key == config.ACTION_CLAIM:
+                                state.player_claim_left -= 1
+                            elif action_key == config.ACTION_SURVEY:
+                                state.player_survey_ready_at = now + config.SURVEY_COOLDOWN_MS
+                        else:
+                            state.narration = "That tile is not a valid target."
                 elif state.phase == config.PHASE_DIG_COMPLETE:
                     if event.key == pygame.K_RETURN:
                         # Now set up the lab phase
@@ -331,58 +349,104 @@ def main() -> None:
                         if event.key == pygame.K_RETURN:
                             state = create_game_state(start_in_title=True)
 
-        if state.phase == config.PHASE_EXCAVATION and state.current_turn == "ai":
-            # Wait for the randomly-rolled delay (1-5 seconds) before the AI acts
+        if state.phase == config.PHASE_EXCAVATION:
             now = pygame.time.get_ticks()
-            elapsed = (now - state.ai_think_start) if state.ai_think_start > 0 else (state.ai_think_delay + 1)
-            if elapsed >= state.ai_think_delay:
-                if state.ai_actions_left > 0:
-                    choice = choose_action(
-                        state.grid,
-                        "ai",
-                        state.rng,
-                        fossils=state.fossils,
-                        rush_left=state.ai_rush_left,
-                        claim_left=state.ai_claim_left,
-                        remaining_actions=state.ai_actions_left,
-                    )
-                    if choice:
-                        # Record AI dig animation ticks
-                        state.ai_dig_ticks = pygame.time.get_ticks()
+            if state.excavation_start_ticks == 0:
+                state.excavation_start_ticks = now
+                state.excavation_end_ticks = now + config.EXCAVATION_DURATION_MS
+                state.excavation_time_left_ms = config.EXCAVATION_DURATION_MS
 
-                        state.narration = apply_action(
-                            choice.action,
-                            state.grid,
-                            choice.tile,
-                            "ai",
-                            state.rng,
-                            state.fossils,
-                        )
-                        state.ai_actions_left -= 1
-                        if choice.action == config.ACTION_RUSH:
-                            state.ai_rush_left -= 1
-                        elif choice.action == config.ACTION_CLAIM:
-                            state.ai_claim_left -= 1
-                        advance_claims(state.grid)
-                    else:
-                        state.narration = "Rival AI has no valid actions."
-                    state.current_turn = next_turn_label(state.current_turn)
-                    # If it stays AI's turn (multi-action scenario), roll a new delay
-                    if state.current_turn == "ai":
-                        state.ai_think_start = pygame.time.get_ticks()
-                        state.ai_think_delay = state.rng.randint(1000, 5000)
-                        state.narration = "Rival AI is thinking..."
+            pressed = pygame.key.get_pressed()
+            dx = int(pressed[pygame.K_RIGHT] or pressed[pygame.K_d]) - int(pressed[pygame.K_LEFT] or pressed[pygame.K_a])
+            dy = int(pressed[pygame.K_DOWN] or pressed[pygame.K_s]) - int(pressed[pygame.K_UP] or pressed[pygame.K_w])
+            dx = max(-1, min(1, dx))
+            dy = max(-1, min(1, dy))
+            if (dx != 0 or dy != 0) and now >= state.player_move_cooldown_until:
+                target_col = state.player_pos[0] + dx
+                target_row = state.player_pos[1] + dy
+                if _can_move_to("player", target_col, target_row):
+                    state.player_pos = (target_col, target_row)
+                    state.player_facing = _direction_from_delta(dx, dy)
+                    state.player_last_move_ticks = now
+                    state.player_move_cooldown_until = now + config.MOVE_COOLDOWN_MS
                 else:
-                    state.current_turn = next_turn_label(state.current_turn)
+                    state.narration = "You cannot move there."
 
-        if (
-            state.phase == config.PHASE_EXCAVATION
-            and state.player_actions_left <= 0
-            and state.ai_actions_left <= 0
-        ):
-            # Go to the announcement screen before setting up the lab
-            state.phase = config.PHASE_DIG_COMPLETE
-            state.narration = "The dig site has closed."
+            state.excavation_time_left_ms = max(0, state.excavation_end_ticks - now)
+            advance_claims(state.grid, delta_ms)
+
+            if now >= state.ai_next_think_at:
+                move_window = config.AI_THINK_INTERVAL_RANGE_MS
+                state.ai_next_think_at = now + state.rng.randint(move_window[0], move_window[1])
+                choice = choose_action(
+                    state.grid,
+                    "ai",
+                    state.rng,
+                    fossils=state.fossils,
+                    rush_left=state.ai_rush_left,
+                    claim_left=state.ai_claim_left,
+                    time_left_ms=state.excavation_time_left_ms,
+                    actor_pos=state.ai_pos,
+                    actor_facing=state.ai_facing,
+                    actor_is_moving=(now - state.ai_last_move_ticks) < config.MOVE_COOLDOWN_MS,
+                )
+                if choice:
+                    state.ai_target_action = choice.action
+                    state.ai_target_pos = (choice.tile.x, choice.tile.y)
+                    state.ai_status = f"Targeting {config.ACTION_LABELS[choice.action]}"
+                else:
+                    state.ai_target_action = None
+                    state.ai_target_pos = None
+                    state.ai_status = "Searching"
+
+            if state.ai_target_pos:
+                ax, ay = state.ai_pos
+                tx, ty = state.ai_target_pos
+                if (ax, ay) != (tx, ty) and now >= state.ai_move_cooldown_until:
+                    step_x = 0 if ax == tx else (1 if tx > ax else -1)
+                    step_y = 0 if ay == ty else (1 if ty > ay else -1)
+                    next_x = ax + step_x
+                    next_y = ay + step_y
+                    if _can_move_to("ai", next_x, next_y):
+                        state.ai_pos = (next_x, next_y)
+                        state.ai_facing = _direction_from_delta(step_x, step_y)
+                        state.ai_last_move_ticks = now
+                        state.ai_move_cooldown_until = now + config.MOVE_COOLDOWN_MS
+                    else:
+                        state.ai_target_pos = None
+                elif (ax, ay) == (tx, ty) and state.ai_target_action:
+                    action_key = state.ai_target_action
+                    if now >= state.ai_action_cooldown_until:
+                        if action_key == config.ACTION_SURVEY and now < state.ai_survey_ready_at:
+                            pass
+                        elif action_key == config.ACTION_RUSH and state.ai_rush_left <= 0:
+                            pass
+                        elif action_key == config.ACTION_CLAIM and state.ai_claim_left <= 0:
+                            pass
+                        else:
+                            tile = state.grid.get_tile(ax, ay)
+                            if tile and can_target_tile(tile, action_key, "ai", state.grid, state.fossils):
+                                state.narration = apply_action(
+                                    action_key,
+                                    state.grid,
+                                    tile,
+                                    "ai",
+                                    state.rng,
+                                    state.fossils,
+                                )
+                                state.ai_action_cooldown_until = now + config.ACTION_COOLDOWNS_MS[action_key]
+                                if action_key == config.ACTION_RUSH:
+                                    state.ai_rush_left -= 1
+                                elif action_key == config.ACTION_CLAIM:
+                                    state.ai_claim_left -= 1
+                                elif action_key == config.ACTION_SURVEY:
+                                    state.ai_survey_ready_at = now + config.SURVEY_COOLDOWN_MS
+                                state.ai_target_action = None
+                                state.ai_target_pos = None
+
+            if state.excavation_time_left_ms <= 0:
+                state.phase = config.PHASE_DIG_COMPLETE
+                state.narration = "The dig site has closed."
 
         bg_sprite = sprites.get_background_sprite(state.bg_key)
         if bg_sprite:
@@ -447,14 +511,17 @@ def main() -> None:
             title_buttons = []
             final_buttons = []
         elif state.phase in {config.PHASE_EXCAVATION, config.PHASE_DIG_COMPLETE}:
-            draw_side_panels(
-                screen,
-                label_font,
-                state,
-            )
             draw_grid(screen, state.grid, label_font, state.hover_tile)
+            draw_characters(screen, label_font, state)
             if state.phase == config.PHASE_EXCAVATION:
-                action_bar_buttons = draw_action_bar(screen, label_font, state.selected_action, state.player_rush_left, state.player_claim_left)
+                draw_excavation_hud(screen, label_font, state)
+                action_bar_buttons = draw_action_bar(
+                    screen,
+                    label_font,
+                    state.player_rush_left,
+                    state.player_claim_left,
+                    state.player_survey_ready_at,
+                )
                 draw_narration(screen, label_font, state.narration)
             else:
                 # Overlay the dig-complete announcement on top of the frozen grid

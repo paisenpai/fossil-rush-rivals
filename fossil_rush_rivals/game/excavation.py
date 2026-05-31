@@ -6,19 +6,14 @@ from .fossils import Fossil, reveal_fossil
 
 
 def is_tile_actionable(tile: Tile) -> bool:
-    return tile.state in {"hidden", "surveyed"}
+    return tile.state in {"hidden", "surveyed"} and not tile.obstacle
 
 
 def is_tile_claimable(tile: Tile) -> bool:
-    return tile.state in {"hidden", "surveyed"}
+    return tile.state in {"hidden", "surveyed"} and not tile.obstacle
 
 
 def _dig_required_for_tile(tile: Tile, fossils: Dict[str, Fossil]) -> int:
-    if tile.content_type == "fossil" and tile.fossil_id and tile.fossil_id in fossils:
-        fossil = fossils[tile.fossil_id]
-        return 3 if len(fossil.tiles) > 1 else 2
-    if tile.content_type == "decoy":
-        return 2
     return 1
 
 
@@ -31,37 +26,31 @@ def _fossil_owned_by_other(tile: Tile, actor: str, fossils: Dict[str, Fossil] | 
     return fossil is not None and fossil.owner is not None and fossil.owner != actor
 
 
-def _apply_rush_damage(tile: Tile, fossils: Dict[str, Fossil], rng, actor: str) -> str:
+def _apply_damage(tile: Tile, fossils: Dict[str, Fossil], rng, actor: str, action: str) -> str:
     if tile.content_type != "fossil" or not tile.fossil_id:
         return ""
     fossil = fossils.get(tile.fossil_id)
     if not fossil or fossil.broken:
         return ""
-    if rng.random() <= config.RUSH_BREAK_CHANCE:
-        fossil.broken = True
-        fossil.condition = 0.0
-        fossil.authenticity = "fake"
-        fossil.verified = False
-        if config.AI_DEBUG_LOG:
-            actor_label = config.PLAYER_LABEL if actor == "player" else config.AI_LABEL
-            print(f"Debug: {actor_label} shattered {fossil.code} {fossil.name} via rush.")
-        return f" The rush shatters {fossil.name}."
-    if rng.random() <= config.RUSH_DAMAGE_CHANCE:
-        fossil.condition = max(0.0, fossil.condition - rng.uniform(0.15, 0.35))
+    chance = config.RUSH_DAMAGE_CHANCE if action == config.ACTION_RUSH else config.CAREFUL_DAMAGE_CHANCE
+    if rng.random() <= chance:
+        severity = (0.15, 0.35) if action == config.ACTION_RUSH else (0.05, 0.18)
+        fossil.condition = max(0.0, fossil.condition - rng.uniform(*severity))
         if fossil.authenticity == "uncertain":
             fossil.authenticity = "suspicious"
         if config.AI_DEBUG_LOG:
             actor_label = config.PLAYER_LABEL if actor == "player" else config.AI_LABEL
-            print(f"Debug: {actor_label} damaged {fossil.code} {fossil.name} via rush.")
-        return f" The rush damages {fossil.name}."
+            print(f"Debug: {actor_label} damaged {fossil.code} {fossil.name} via {action}.")
+        label = "dig" if action == config.ACTION_CAREFUL else "rush"
+        return f" The {label} damages {fossil.name}."
     return ""
 
 
 def apply_survey(tile: Tile, fossils: Dict[str, Fossil]) -> None:
     tile.state = "surveyed"
     if tile.content_type in {"fossil", "decoy"}:
-        tile.dig_progress = max(tile.dig_progress, 1)
-        tile.dig_required = max(tile.dig_required, _dig_required_for_tile(tile, fossils))
+        tile.dig_progress = 0
+        tile.dig_required = 1
         if tile.content_type == "fossil" and tile.fossil_id and tile.fossil_id in fossils:
             fossil = fossils[tile.fossil_id]
             if len(fossil.tiles) > 1:
@@ -77,8 +66,8 @@ def apply_survey(tile: Tile, fossils: Dict[str, Fossil]) -> None:
 def apply_partial_reveal(tile: Tile, fossils: Dict[str, Fossil]) -> None:
     tile.state = "surveyed"
     if tile.content_type in {"fossil", "decoy"}:
-        tile.dig_progress = max(tile.dig_progress, 1)
-        tile.dig_required = max(tile.dig_required, _dig_required_for_tile(tile, fossils))
+        tile.dig_progress = 0
+        tile.dig_required = 1
         if tile.content_type == "fossil" and tile.fossil_id and tile.fossil_id in fossils:
             fossil = fossils[tile.fossil_id]
             if len(fossil.tiles) > 1:
@@ -102,26 +91,14 @@ def apply_reveal(tile: Tile, owner: str) -> None:
 
 
 def _apply_dig(tile: Tile, owner: str, fossils: Dict[str, Fossil], action: str, rng) -> str:
-    if tile.state == "surveyed" and tile.content_type in {"fossil", "decoy"}:
-        tile.dig_progress += 1
-        if tile.dig_progress < tile.dig_required:
-            label = "fossil" if tile.content_type == "fossil" else "decoy"
-            if tile.content_type == "fossil" and tile.fossil_id and tile.fossil_id in fossils:
-                label = fossils[tile.fossil_id].name
-            rush_note = ""
-            if action == config.ACTION_RUSH:
-                rush_note = _apply_rush_damage(tile, fossils, rng, owner)
-            return (
-                f"{config.PLAYER_LABEL if owner == 'player' else config.AI_LABEL} partially exposes"
-                f" {label} at {tile.x + 1}, {tile.y + 1}.{rush_note}"
-            )
-
     apply_reveal(tile, owner=owner)
     fossil_name = reveal_fossil(fossils, tile, owner)
     actor_label = config.PLAYER_LABEL if owner == "player" else config.AI_LABEL
     rush_note = ""
-    if action == config.ACTION_RUSH:
-        rush_note = _apply_rush_damage(tile, fossils, rng, owner)
+    if action in {config.ACTION_RUSH, config.ACTION_CAREFUL}:
+        rush_note = _apply_damage(tile, fossils, rng, owner, action)
+        if fossil_name and not rush_note:
+            rush_note = " The fossil remains intact."
     if fossil_name:
         return f"{actor_label} reveals {fossil_name} at {tile.x + 1}, {tile.y + 1}.{rush_note}"
     if tile.content_type == "decoy":
@@ -131,7 +108,7 @@ def _apply_dig(tile: Tile, owner: str, fossils: Dict[str, Fossil], action: str, 
 
 def apply_claim(tile: Tile, owner: str) -> None:
     tile.claimed_by = owner
-    tile.claim_turns_left = 2
+    tile.claim_ms_left = config.CLAIM_DURATION_MS
 
 
 def can_target_tile(
@@ -144,7 +121,7 @@ def can_target_tile(
     if action in {config.ACTION_CAREFUL, config.ACTION_RUSH, config.ACTION_SURVEY}:
         if action in {config.ACTION_CAREFUL, config.ACTION_RUSH} and _fossil_owned_by_other(tile, actor, fossils):
             return False
-        if tile.claimed_by is not None and tile.claimed_by != actor:
+        if tile.claimed_by is not None and tile.claimed_by != actor and tile.claim_ms_left > 0:
             return False
         if tile.state == "surveyed":
             return True
@@ -236,15 +213,11 @@ def apply_action(action: str, grid: Grid, tile: Tile, actor: str, rng, fossils: 
     return ""
 
 
-def advance_claims(grid: Grid) -> None:
+def advance_claims(grid: Grid, delta_ms: int) -> None:
     for row in grid.tiles:
         for tile in row:
-            if tile.claimed_by is not None:
-                tile.claim_turns_left -= 1
-                if tile.claim_turns_left <= 0:
+            if tile.claimed_by is not None and tile.claim_ms_left > 0:
+                tile.claim_ms_left = max(tile.claim_ms_left - delta_ms, 0)
+                if tile.claim_ms_left <= 0:
                     tile.claimed_by = None
-                    tile.claim_turns_left = 0
-
-
-def next_turn_label(current: str) -> str:
-    return "ai" if current == "player" else "player"
+                    tile.claim_ms_left = 0

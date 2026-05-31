@@ -128,7 +128,10 @@ def _tile_feature_vector(
     action: str,
     surveyed_coords: List[Tuple[int, int]],
     player_reveal_coords: List[Tuple[int, int]],
-    remaining_actions: int | None,
+    time_left_ms: int | None,
+    actor_pos: Tuple[int, int] | None,
+    actor_facing: str | None,
+    actor_is_moving: bool | None,
 ) -> List[float]:
     revealed_neighbors, surveyed_neighbors = _count_neighbors(grid, tile)
     dist_survey = _distance_norm(tile, surveyed_coords)
@@ -142,15 +145,28 @@ def _tile_feature_vector(
     owned_by_actor = 1.0 if tile.owner == actor else 0.0
     action_rush = 1.0 if action == config.ACTION_RUSH else 0.0
     action_claim = 1.0 if action == config.ACTION_CLAIM else 0.0
-    remaining_norm = 0.0
-    if remaining_actions is not None:
-        remaining_norm = remaining_actions / max(config.AI_ACTIONS, 1)
+    time_left_norm = 0.0
+    if time_left_ms is not None:
+        time_left_norm = min(max(time_left_ms, 0), config.EXCAVATION_DURATION_MS) / max(
+            config.EXCAVATION_DURATION_MS,
+            1,
+        )
     dig_required = max(tile.dig_required, 1)
     dig_progress_norm = 0.0
     dig_required_norm = 0.0
     if tile.dig_progress > 0:
         dig_progress_norm = min(tile.dig_progress, dig_required) / dig_required
         dig_required_norm = min(dig_required, 3) / 3.0
+    actor_x_norm = 0.0
+    actor_y_norm = 0.0
+    if actor_pos is not None:
+        actor_x_norm = actor_pos[0] / max(config.GRID_COLS - 1, 1)
+        actor_y_norm = actor_pos[1] / max(config.GRID_ROWS - 1, 1)
+    facing_one_hot = [0.0] * len(config.DIRECTION_KEYS)
+    if actor_facing in config.DIRECTION_KEYS:
+        facing_one_hot[config.DIRECTION_KEYS.index(actor_facing)] = 1.0
+    moving_flag = 1.0 if actor_is_moving else 0.0
+
     return [
         x_norm,
         y_norm,
@@ -165,9 +181,13 @@ def _tile_feature_vector(
         surveyed_neighbors / 8.0,
         dist_survey,
         dist_player_reveal,
-        remaining_norm,
+        time_left_norm,
         dig_progress_norm,
         dig_required_norm,
+        actor_x_norm,
+        actor_y_norm,
+        moving_flag,
+        *facing_one_hot,
     ]
 
 
@@ -178,20 +198,35 @@ def _tile_feature_dict(
     action: str,
     surveyed_coords: List[Tuple[int, int]],
     player_reveal_coords: List[Tuple[int, int]],
-    remaining_actions: int | None,
+    time_left_ms: int | None,
+    actor_pos: Tuple[int, int] | None,
+    actor_facing: str | None,
+    actor_is_moving: bool | None,
 ) -> Dict[str, float]:
     revealed_neighbors, surveyed_neighbors = _count_neighbors(grid, tile)
     dist_survey = _distance_norm(tile, surveyed_coords)
     dist_player_reveal = _distance_norm(tile, player_reveal_coords)
-    remaining_norm = 0.0
-    if remaining_actions is not None:
-        remaining_norm = remaining_actions / max(config.AI_ACTIONS, 1)
+    time_left_norm = 0.0
+    if time_left_ms is not None:
+        time_left_norm = min(max(time_left_ms, 0), config.EXCAVATION_DURATION_MS) / max(
+            config.EXCAVATION_DURATION_MS,
+            1,
+        )
     dig_required = max(tile.dig_required, 1)
     dig_progress_norm = 0.0
     dig_required_norm = 0.0
     if tile.dig_progress > 0:
         dig_progress_norm = min(tile.dig_progress, dig_required) / dig_required
         dig_required_norm = min(dig_required, 3) / 3.0
+    actor_x_norm = 0.0
+    actor_y_norm = 0.0
+    if actor_pos is not None:
+        actor_x_norm = actor_pos[0] / max(config.GRID_COLS - 1, 1)
+        actor_y_norm = actor_pos[1] / max(config.GRID_ROWS - 1, 1)
+    moving_flag = 1.0 if actor_is_moving else 0.0
+    facing_flags = {f"facing_{key}": 0.0 for key in config.DIRECTION_KEYS}
+    if actor_facing in facing_flags:
+        facing_flags[f"facing_{actor_facing}"] = 1.0
     return {
         "x_norm": tile.x / max(config.GRID_COLS - 1, 1),
         "y_norm": tile.y / max(config.GRID_ROWS - 1, 1),
@@ -206,9 +241,13 @@ def _tile_feature_dict(
         "surveyed_neighbors": surveyed_neighbors / 8.0,
         "dist_survey": dist_survey,
         "dist_player_reveal": dist_player_reveal,
-        "remaining_actions": remaining_norm,
+        "time_left": time_left_norm,
         "dig_progress": dig_progress_norm,
         "dig_required": dig_required_norm,
+        "actor_x": actor_x_norm,
+        "actor_y": actor_y_norm,
+        "actor_moving": moving_flag,
+        **facing_flags,
     }
 
 
@@ -231,7 +270,10 @@ def choose_action(
     fossils: Dict[str, Fossil] | None = None,
     rush_left: int | None = None,
     claim_left: int | None = None,
-    remaining_actions: int | None = None,
+    time_left_ms: int | None = None,
+    actor_pos: Tuple[int, int] | None = None,
+    actor_facing: str | None = None,
+    actor_is_moving: bool | None = None,
 ) -> Optional[AiChoice]:
     actions = [
         config.ACTION_SURVEY,
@@ -275,7 +317,10 @@ def choose_action(
                 action,
                 surveyed_coords,
                 player_reveal_coords,
-                remaining_actions,
+                time_left_ms,
+                actor_pos,
+                actor_facing,
+                actor_is_moving,
             )
             feature_dict = _tile_feature_dict(
                 grid,
@@ -284,7 +329,10 @@ def choose_action(
                 action,
                 surveyed_coords,
                 player_reveal_coords,
-                remaining_actions,
+                time_left_ms,
+                actor_pos,
+                actor_facing,
+                actor_is_moving,
             )
             kmeans_score = models.kmeans.score_zone(vector)
             em_score = models.em.estimate(vector)

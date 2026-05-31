@@ -135,6 +135,38 @@ def _draw_button(
     surface.blit(text_rendered, text_rect)
 
 
+def _obstacle_sprite_key(grid: Grid, tile: Tile) -> str:
+    north = grid.get_tile(tile.x, tile.y - 1)
+    south = grid.get_tile(tile.x, tile.y + 1)
+    west = grid.get_tile(tile.x - 1, tile.y)
+    east = grid.get_tile(tile.x + 1, tile.y)
+
+    n = north is not None and north.obstacle
+    s = south is not None and south.obstacle
+    w = west is not None and west.obstacle
+    e = east is not None and east.obstacle
+
+    if n and s and w and e:
+        return "obstacle_center"
+    if n and e and not s and not w:
+        return "obstacle_corner_ne"
+    if n and w and not s and not e:
+        return "obstacle_corner_nw"
+    if s and e and not n and not w:
+        return "obstacle_corner_se"
+    if s and w and not n and not e:
+        return "obstacle_corner_sw"
+    if not n and (s or w or e):
+        return "obstacle_edge_n"
+    if not s and (n or w or e):
+        return "obstacle_edge_s"
+    if not w and (n or s or e):
+        return "obstacle_edge_w"
+    if not e and (n or s or w):
+        return "obstacle_edge_e"
+    return "obstacle_center"
+
+
 def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover_tile: Optional[Tile]) -> None:
     for row in range(config.GRID_ROWS):
         for col in range(config.GRID_COLS):
@@ -150,15 +182,21 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
 
             is_hovered = hover_tile and hover_tile.x == col and hover_tile.y == row
 
-            # Draw the appropriate terrain or fossil sprite
+            # Draw the appropriate terrain, obstacle, or fossil sprite
             sprite = None
-            if tile.state == "hidden":
+            if tile.obstacle:
+                sprite_key = _obstacle_sprite_key(grid, tile)
+                sprite = sprites.get_item_sprite(sprite_key, scaled=True)
+            elif tile.state == "hidden":
                 if tile.claimed_by:
                     sprite = sprites.get_item_sprite("claimed_zone", scaled=True)
                 else:
                     sprite = sprites.get_item_sprite("hidden_dirt", scaled=True)
             elif tile.state == "surveyed":
-                sprite = sprites.get_item_sprite("surveyed_dirt", scaled=True)
+                if tile.content_type in {"fossil", "decoy"}:
+                    sprite = sprites.get_item_sprite("surveyed_partial", scaled=True)
+                else:
+                    sprite = sprites.get_item_sprite("surveyed_dirt", scaled=True)
             elif tile.state == "revealed":
                 if tile.content_type == "empty":
                     sprite = sprites.get_item_sprite("empty_dirt", scaled=True)
@@ -166,7 +204,10 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
                     sprite = sprites.get_item_sprite("decoy", scaled=True)
                 elif tile.content_type == "fossil":
                     if tile.fossil_id:
-                        sprite = sprites.get_item_sprite(tile.fossil_id, scaled=True)
+                        if tile.fossil_variant == "fragment":
+                            sprite = sprites.get_item_sprite("fossil_fragment", scaled=True)
+                        else:
+                            sprite = sprites.get_item_sprite(tile.fossil_id, scaled=True)
                     if not sprite:
                         sprite = sprites.get_item_sprite("empty_dirt", scaled=True)
 
@@ -191,7 +232,7 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
 
             # Apply colour overlay on top of sprite — brown by default, green on hover
             tint_surf = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
-            if is_hovered:
+            if is_hovered and not tile.obstacle:
                 # Vivid green hover tint
                 tint_surf.fill((60, 200, 80, 90))
                 surface.blit(tint_surf, rect.topleft)
@@ -207,6 +248,84 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
                 # Warm earthy brown tint over unrevealed tiles
                 tint_surf.fill((100, 55, 10, 70))
                 surface.blit(tint_surf, rect.topleft)
+
+
+def draw_characters(surface: pygame.Surface, font: pygame.font.Font, state) -> None:
+    now = pygame.time.get_ticks()
+    actor_settings = [
+        (
+            "player",
+            state.player_pos,
+            state.player_facing,
+            (now - state.player_last_move_ticks) < config.MOVE_COOLDOWN_MS,
+        ),
+        (
+            "rival",
+            state.ai_pos,
+            state.ai_facing,
+            (now - state.ai_last_move_ticks) < config.MOVE_COOLDOWN_MS,
+        ),
+    ]
+
+    for actor_key, (col, row), facing, is_moving in actor_settings:
+        tile_rect = pygame.Rect(
+            config.GRID_LEFT + col * config.TILE_SIZE,
+            config.GRID_TOP + row * config.TILE_SIZE,
+            config.TILE_SIZE,
+            config.TILE_SIZE,
+        )
+        anim = "walk" if is_moving else "idle"
+        frames = config.ANIMATION_FRAMES.get(anim, ["idle_0"])
+        frame_ms = config.ANIMATION_FRAME_MS.get(anim, 200)
+        frame_index = (now // frame_ms) % max(len(frames), 1)
+        frame_key = frames[frame_index]
+        sprite_key = f"{facing}_{frame_key}"
+
+        sprite = sprites.get_character_sprite(actor_key, sprite_key)
+        if not sprite:
+            fallback = {
+                "n": "back_idle",
+                "ne": "back_idle",
+                "e": "right_idle",
+                "se": "right_idle",
+                "s": "front_idle",
+                "sw": "left_idle",
+                "w": "left_idle",
+                "nw": "left_idle",
+            }
+            legacy_key = fallback.get(facing, "front_idle")
+            sprite = sprites.get_character_sprite(actor_key, legacy_key)
+
+        if sprite:
+            scaled = pygame.transform.smoothscale(sprite, (config.TILE_SIZE, config.TILE_SIZE))
+            surface.blit(scaled, tile_rect)
+        else:
+            color = (220, 180, 120) if actor_key == "player" else (210, 90, 90)
+            pygame.draw.rect(surface, color, tile_rect)
+
+
+def draw_excavation_hud(surface: pygame.Surface, font: pygame.font.Font, state) -> None:
+    grid_width = config.GRID_COLS * config.TILE_SIZE
+    hud_rect = pygame.Rect(config.GRID_LEFT, config.GRID_TOP - 64, grid_width, 52)
+    _panel(surface, hud_rect)
+
+    time_left = max(0, state.excavation_time_left_ms)
+    seconds = time_left // 1000
+    time_text = f"Time Left: {seconds // 60:02d}:{seconds % 60:02d}"
+    draw_text(surface, "Excavation Phase", (hud_rect.x + 12, hud_rect.y + 8), font, config.THEME_TEXT_GOLD)
+    draw_text(surface, time_text, (hud_rect.x + 12, hud_rect.y + 28), font, config.THEME_TEXT_CREAM)
+
+    right_x = hud_rect.right - 12
+    survey_ready = "Ready" if pygame.time.get_ticks() >= state.player_survey_ready_at else "Cooldown"
+    status_lines = [
+        f"Rush Dig: {state.player_rush_left}",
+        f"Claim Zone: {state.player_claim_left}",
+        f"Survey: {survey_ready}",
+        f"Rival: {state.ai_status or 'Searching'}",
+    ]
+    for index, line in enumerate(status_lines):
+        line_w = font.size(line)[0]
+        draw_text(surface, line, (right_x - line_w, hud_rect.y + 8 + index * 18), font, config.THEME_TEXT_CREAM)
 
 
 def draw_narration(surface: pygame.Surface, font: pygame.font.Font, narration: str) -> None:
@@ -419,68 +538,23 @@ def draw_journal_screen(
     )
 
 
-def draw_side_panels(
+def draw_action_bar(
     surface: pygame.Surface,
     font: pygame.font.Font,
-    state,
-) -> None:
-    left_x = config.GRID_LEFT
-    right_x = config.WINDOW_WIDTH - config.GRID_RIGHT_MARGIN
-    top_y = config.GRID_TOP - 26
-
-    player_text = f"{config.PLAYER_LABEL}  Actions: {state.player_actions_left}"
-    ai_text = f"{config.AI_LABEL}  Actions: {state.ai_actions_left}"
-
-    draw_text(surface, player_text, (left_x, top_y), font, config.THEME_TEXT_GOLD)
-    
-    # Calculate right-aligned positions to support embossed shadows correctly
-    ai_w = font.size(ai_text)[0]
-    draw_text(surface, ai_text, (right_x - ai_w, top_y), font, config.THEME_TEXT_GOLD)
-
-    info_y = top_y - 22
-    turn_text = f"Turn: {state.current_turn.title()}"
-    action_text = f"Action: {config.ACTION_LABELS[state.selected_action]}"
-    draw_text(surface, turn_text, (left_x, info_y), font, config.THEME_TEXT_CREAM)
-    
-    action_w = font.size(action_text)[0]
-    draw_text(surface, action_text, (right_x - action_w, info_y), font, config.THEME_TEXT_CREAM)
-
-    # 1. RENDER PLAYER CHARACTER (Left Margin) — always faces East (right_idle) toward rival
-    current_ticks = pygame.time.get_ticks()
-    player_dig_ticks = getattr(state, 'player_dig_ticks', 0)
-    if player_dig_ticks > 0 and current_ticks - player_dig_ticks < 1200:
-        player_state = "digging"
-    else:
-        player_state = "left_idle"  # left_idle sprite faces RIGHT toward the rival
-
-    player_sprite = sprites.get_character_sprite("player", player_state)
-    if player_sprite:
-        scaled_player = pygame.transform.smoothscale(player_sprite, (110, 160))
-        surface.blit(scaled_player, (25, 260))
-
-    # 2. RENDER RIVAL CHARACTER (Right Margin) — always faces West (left_idle) toward player
-    ai_dig_ticks = getattr(state, 'ai_dig_ticks', 0)
-    if ai_dig_ticks > 0 and current_ticks - ai_dig_ticks < 1200:
-        rival_state = "digging"
-    else:
-        rival_state = "right_idle"  # right_idle sprite faces LEFT toward the player
-
-    rival_sprite = sprites.get_character_sprite("rival", rival_state)
-    if rival_sprite:
-        scaled_rival = pygame.transform.smoothscale(rival_sprite, (110, 160))
-        surface.blit(scaled_rival, (825, 260))
-
-
-def draw_action_bar(surface: pygame.Surface, font: pygame.font.Font, selected_action: str, rush_left: int, claim_left: int) -> list[tuple[pygame.Rect, str]]:
+    rush_left: int,
+    claim_left: int,
+    survey_ready_at: int,
+) -> list[tuple[pygame.Rect, str]]:
     grid_width = config.GRID_COLS * config.TILE_SIZE
     bar_top = config.GRID_TOP + (config.GRID_ROWS * config.TILE_SIZE) + config.ACTION_BAR_GAP
     box_width = (grid_width - (config.ACTION_BAR_GAP * 3)) // 4
 
+    survey_ready = "Ready" if pygame.time.get_ticks() >= survey_ready_at else "Cooldown"
     actions = [
-        (config.ACTION_SURVEY, "1", config.ACTION_LABELS[config.ACTION_SURVEY]),
-        (config.ACTION_CAREFUL, "2", config.ACTION_LABELS[config.ACTION_CAREFUL]),
-        (config.ACTION_RUSH, "3", f"{config.ACTION_LABELS[config.ACTION_RUSH]} ({rush_left})"),
-        (config.ACTION_CLAIM, "4", f"{config.ACTION_LABELS[config.ACTION_CLAIM]} ({claim_left})"),
+        (config.ACTION_SURVEY, "E", f"Survey [{survey_ready}]"),
+        (config.ACTION_CAREFUL, "Space", "Careful Dig"),
+        (config.ACTION_RUSH, "Shift+Space", f"Rush Dig ({rush_left})"),
+        (config.ACTION_CLAIM, "Q", f"Claim Zone ({claim_left})"),
     ]
 
     button_rects: list[tuple[pygame.Rect, str]] = []
@@ -488,11 +562,7 @@ def draw_action_bar(surface: pygame.Surface, font: pygame.font.Font, selected_ac
         box_x = config.GRID_LEFT + index * (box_width + config.ACTION_BAR_GAP)
         box_rect = pygame.Rect(box_x, bar_top, box_width, config.ACTION_BAR_HEIGHT)
 
-        # Check active state
-        is_active = (selected_action == action_key)
-
-        # Draw wooden button plaque
-        _draw_button(surface, box_rect, label, font, active=is_active)
+        _draw_button(surface, box_rect, label, font, active=False)
         button_rects.append((box_rect, action_key))
 
     return button_rects
@@ -555,7 +625,7 @@ def draw_dig_complete_screen(
     )
 
     # Subtitle
-    sub = "All excavation actions have been spent."
+    sub = "Time is up at the dig site."
     sub_w = font.size(sub)[0]
     draw_text(surface, sub, (panel_rect.centerx - sub_w // 2, panel_rect.y + 88), font)
 

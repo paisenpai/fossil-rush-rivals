@@ -16,14 +16,29 @@ class GameState:
     grid: Grid
     hover_tile: Optional[Tile]
     narration: str
-    current_turn: str
-    player_actions_left: int
-    ai_actions_left: int
     player_rush_left: int
     player_claim_left: int
     ai_rush_left: int
     ai_claim_left: int
-    selected_action: str
+    player_pos: tuple[int, int]
+    ai_pos: tuple[int, int]
+    player_facing: str
+    ai_facing: str
+    player_last_move_ticks: int
+    ai_last_move_ticks: int
+    player_move_cooldown_until: int
+    ai_move_cooldown_until: int
+    player_action_cooldown_until: int
+    ai_action_cooldown_until: int
+    player_survey_ready_at: int
+    ai_survey_ready_at: int
+    ai_next_think_at: int
+    ai_target_action: Optional[str]
+    ai_target_pos: Optional[tuple[int, int]]
+    excavation_start_ticks: int
+    excavation_end_ticks: int
+    excavation_time_left_ms: int
+    ai_status: str
     rng: random.Random
     fossils: Dict[str, Fossil]
     lab_substate: str
@@ -49,10 +64,6 @@ class GameState:
     journal_view: str
     journal_show_sets: bool
     journal_show_individuals: bool
-    player_dig_ticks: int
-    ai_dig_ticks: int
-    ai_think_start: int   # pygame ticks when AI turn began
-    ai_think_delay: int   # random delay in ms (1000-5000) rolled each turn
     bg_key: str
 
 
@@ -62,20 +73,41 @@ def create_game_state(start_in_title: bool = True) -> GameState:
     rng = random.Random(match_seed)
     fossils = place_fossils(grid, rng)
     journal_data = load_journal()
+    player_tile = grid.random_active_tile(rng)
+    ai_tile = grid.random_active_tile(rng)
+    if player_tile is None:
+        player_tile = grid.tiles[0][0]
+    if ai_tile is None:
+        ai_tile = grid.tiles[-1][-1]
     return GameState(
         phase=config.PHASE_TITLE if start_in_title else config.PHASE_EXCAVATION,
         match_seed=match_seed,
         grid=grid,
         hover_tile=None,
         narration=config.NARRATION_TEXT,
-        current_turn="player",
-        player_actions_left=config.PLAYER_ACTIONS,
-        ai_actions_left=config.AI_ACTIONS,
         player_rush_left=config.RUSH_ACTION_LIMIT,
         player_claim_left=config.CLAIM_ACTION_LIMIT,
         ai_rush_left=config.RUSH_ACTION_LIMIT,
         ai_claim_left=config.CLAIM_ACTION_LIMIT,
-        selected_action=config.ACTION_CAREFUL,
+        player_pos=(player_tile.x, player_tile.y),
+        ai_pos=(ai_tile.x, ai_tile.y),
+        player_facing="s",
+        ai_facing="n",
+        player_last_move_ticks=0,
+        ai_last_move_ticks=0,
+        player_move_cooldown_until=0,
+        ai_move_cooldown_until=0,
+        player_action_cooldown_until=0,
+        ai_action_cooldown_until=0,
+        player_survey_ready_at=0,
+        ai_survey_ready_at=0,
+        ai_next_think_at=0,
+        ai_target_action=None,
+        ai_target_pos=None,
+        excavation_start_ticks=0,
+        excavation_end_ticks=0,
+        excavation_time_left_ms=config.EXCAVATION_DURATION_MS,
+        ai_status="",
         rng=rng,
         fossils=fossils,
         lab_substate=config.LAB_SUB_CHOOSE_FOCUS,
@@ -101,10 +133,6 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         journal_view="root",
         journal_show_sets=True,
         journal_show_individuals=True,
-        player_dig_ticks=0,
-        ai_dig_ticks=0,
-        ai_think_start=0,
-        ai_think_delay=0,
         bg_key="homescreen" if start_in_title else "playing_day",
     )
 

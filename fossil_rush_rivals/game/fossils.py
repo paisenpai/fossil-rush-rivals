@@ -78,9 +78,16 @@ SHAPES = [
     [(0, 0), (0, 1), (0, 2), (0, 3)],
     [(0, 0), (1, 0), (0, 1), (1, 1)],
     [(0, 0), (1, 0), (2, 0), (1, 1)],
+    [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1)],
+    [(0, 0), (1, 0), (2, 0), (2, 1), (1, 1)],
+    [(0, 0), (0, 1), (1, 1), (1, 2), (2, 2)],
+    [(0, 0), (1, 0), (0, 1), (1, 1), (2, 1)],
+    [(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)],
+    [(0, 0), (1, 0), (2, 0), (0, 1), (2, 1), (1, 2)],
+    [(0, 0), (0, 1), (1, 1), (2, 1), (2, 2)],
 ]
 
-FULL_SET_CHANCE = 0.45
+FULL_SET_CHANCE = 0.30
 DECOY_COUNT = 8
 
 
@@ -155,12 +162,13 @@ def place_fossils(grid: Grid, rng) -> Dict[str, Fossil]:
                     valid = False
                     break
                 tile = grid.get_tile(x, y)
-                if tile is None:
+                if tile is None or tile.obstacle:
                     valid = False
                     break
                 coords.append((x, y))
             if not valid:
                 continue
+            core = coords[0]
             for x, y in coords:
                 occupied.add((x, y))
                 tile = grid.get_tile(x, y)
@@ -168,7 +176,8 @@ def place_fossils(grid: Grid, rng) -> Dict[str, Fossil]:
                     tile.content_type = "fossil"
                     tile.fossil_id = template.fossil_id
                     tile.fossil_code = template.code
-                    tile.dig_required = 3 if len(template.offsets) > 1 else 2
+                    tile.dig_required = 1
+                    tile.fossil_variant = "core" if (x, y) == core else "fragment"
             fossils[template.fossil_id] = Fossil(
                 fossil_id=template.fossil_id,
                 name=template.name,
@@ -193,6 +202,8 @@ def _place_decoys(grid: Grid, rng, occupied: set[tuple[int, int]]) -> None:
     for row in grid.tiles:
         for tile in row:
             if not tile.active:
+                continue
+            if tile.obstacle:
                 continue
             if (tile.x, tile.y) not in occupied:
                 empty_tiles.append(tile)

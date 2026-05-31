@@ -28,10 +28,18 @@ def load_sprites() -> None:
 
     # Load Characters
     # Expected characters and their anim states
+    directional_states = []
+    for direction in config.DIRECTION_KEYS:
+        for frames in config.ANIMATION_FRAMES.values():
+            for frame in frames:
+                directional_states.append(f"{direction}_{frame}")
+
+    legacy_states = ["front_idle", "back_idle", "left_idle", "right_idle", "walk_1", "walk_2", "digging"]
+
     chars_config = {
-        "player": ["front_idle", "back_idle", "left_idle", "right_idle", "walk_1", "walk_2", "digging"],
-        "rival": ["front_idle", "back_idle", "left_idle", "right_idle", "walk_1", "walk_2", "digging"],
-        "auctioneer": ["front_idle", "left_idle", "right_idle", "gesture"]
+        "player": directional_states + legacy_states,
+        "rival": directional_states + legacy_states,
+        "auctioneer": ["front_idle", "left_idle", "right_idle", "gesture"],
     }
 
     for char_name, states in chars_config.items():
@@ -61,7 +69,17 @@ def load_sprites() -> None:
         "fossil_fern", "fossil_wood", "fossil_brachiopod",
         "fossil_crinoid", "fossil_coprolite", "fossil_bone_fragment",
         # Terrain / Ground
-        "decoy", "hidden_dirt", "surveyed_dirt", "empty_dirt", "claimed_zone"
+        "decoy", "hidden_dirt", "surveyed_dirt", "surveyed_partial", "empty_dirt", "claimed_zone",
+        "fossil_fragment",
+        "obstacle_center",
+        "obstacle_edge_n",
+        "obstacle_edge_e",
+        "obstacle_edge_s",
+        "obstacle_edge_w",
+        "obstacle_corner_ne",
+        "obstacle_corner_nw",
+        "obstacle_corner_se",
+        "obstacle_corner_sw",
     ]
 
     for item_key in item_files:

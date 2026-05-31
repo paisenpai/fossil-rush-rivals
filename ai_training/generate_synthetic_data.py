@@ -61,9 +61,20 @@ FEATURE_NAMES = [
     "surveyed_neighbors",
     "dist_survey",
     "dist_player_reveal",
-    "remaining_actions",
+    "time_left",
     "dig_progress",
     "dig_required",
+    "actor_x",
+    "actor_y",
+    "actor_moving",
+    "facing_n",
+    "facing_ne",
+    "facing_e",
+    "facing_se",
+    "facing_s",
+    "facing_sw",
+    "facing_w",
+    "facing_nw",
 ]
 
 
@@ -182,7 +193,14 @@ def main() -> None:
         dist_survey = _distance_norm(x, y, all_survey_coords)
         dist_player_reveal = _distance_norm(x, y, player_reveal_coords)
 
-        remaining_actions = float(rng.integers(1, 16)) / 15.0
+        time_left = float(rng.integers(5, 60)) / 60.0
+
+        actor_x = float(rng.integers(0, GRID_COLS)) / max(GRID_COLS - 1, 1)
+        actor_y = float(rng.integers(0, GRID_ROWS)) / max(GRID_ROWS - 1, 1)
+        actor_moving = float(rng.random() < 0.55)
+        facing_index = int(rng.integers(0, 8))
+        facing_flags = [0.0] * 8
+        facing_flags[facing_index] = 1.0
 
         if player_profile_key == "rush" and ai_profile_key == "survey":
             focus_bonus = player_pressure * 0.35 + contest_pressure * 0.30
@@ -238,9 +256,13 @@ def main() -> None:
                 surveyed_neighbors,
                 dist_survey,
                 dist_player_reveal,
-                remaining_actions,
+                time_left,
                 dig_progress_norm,
                 dig_required_norm,
+                actor_x,
+                actor_y,
+                actor_moving,
+                *facing_flags,
             ],
             dtype=float,
         )

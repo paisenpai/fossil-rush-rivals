@@ -16,20 +16,22 @@ class Tile:
     content_type: str = "empty"
     fossil_id: Optional[str] = None
     fossil_code: Optional[str] = None
+    fossil_variant: Optional[str] = None
     owner: Optional[str] = None
     claimed_by: Optional[str] = None
-    claim_turns_left: int = 0
+    claim_ms_left: int = 0
     dig_progress: int = 0
     dig_required: int = 1
     survey_hint: Optional[str] = None
+    obstacle: bool = False
 
     def label(self) -> str:
         if self.state == "hidden":
-            if self.claimed_by:
+            if self.claimed_by and self.claim_ms_left > 0:
                 return "X"
             return "?"
         if self.state == "surveyed":
-            if self.claimed_by:
+            if self.claimed_by and self.claim_ms_left > 0:
                 return "X"
             if self.content_type in {"fossil", "decoy"} and self.dig_progress > 0:
                 return str(min(self.dig_progress, max(self.dig_required, 1)))
@@ -92,6 +94,73 @@ class Grid:
         for row in self.tiles:
             for tile in row:
                 tile.active = (tile.x, tile.y) in active
+
+        self._apply_obstacles(active)
+
+    def _apply_obstacles(self, active: set[Tuple[int, int]]) -> None:
+        rng = random.Random(self.seed + 19)
+        target = rng.randint(config.OBSTACLE_TILE_MIN, config.OBSTACLE_TILE_MAX)
+        clusters = rng.randint(config.OBSTACLE_CLUSTER_MIN, config.OBSTACLE_CLUSTER_MAX)
+        obstacles: set[Tuple[int, int]] = set()
+
+        active_list = [coord for coord in active]
+        if not active_list:
+            return
+
+        for _ in range(clusters):
+            if len(obstacles) >= target:
+                break
+            remaining = target - len(obstacles)
+            cluster_size = min(
+                remaining,
+                rng.randint(config.OBSTACLE_CLUSTER_SIZE_MIN, config.OBSTACLE_CLUSTER_SIZE_MAX),
+            )
+            seed = rng.choice(active_list)
+            if seed in obstacles:
+                continue
+            shape = rng.choice(["blob", "line", "circle"])
+            cluster = set()
+
+            if shape == "line":
+                direction = rng.choice([(1, 0), (0, 1), (1, 1), (-1, 1)])
+                cx, cy = seed
+                for _ in range(cluster_size * 2):
+                    if (cx, cy) in active and (cx, cy) not in obstacles:
+                        cluster.add((cx, cy))
+                    if len(cluster) >= cluster_size:
+                        break
+                    cx += direction[0]
+                    cy += direction[1]
+            elif shape == "circle":
+                radius = rng.randint(1, 2)
+                cx, cy = seed
+                for x in range(cx - radius, cx + radius + 1):
+                    for y in range(cy - radius, cy + radius + 1):
+                        if (x, y) in active and (x, y) not in obstacles:
+                            if math.hypot(x - cx, y - cy) <= radius + 0.25:
+                                cluster.add((x, y))
+                if len(cluster) > cluster_size:
+                    cluster = set(rng.sample(list(cluster), cluster_size))
+            else:
+                frontier = [seed]
+                while frontier and len(cluster) < cluster_size:
+                    cx, cy = frontier.pop(0)
+                    if (cx, cy) in active and (cx, cy) not in obstacles:
+                        cluster.add((cx, cy))
+                    neighbors = self._neighbors(cx, cy)
+                    rng.shuffle(neighbors)
+                    for nx, ny in neighbors:
+                        if (nx, ny) in active and (nx, ny) not in obstacles and (nx, ny) not in cluster:
+                            frontier.append((nx, ny))
+                        if len(cluster) >= cluster_size:
+                            break
+
+            obstacles.update(cluster)
+
+        for x, y in obstacles:
+            tile = self.get_tile(x, y)
+            if tile:
+                tile.obstacle = True
 
     def _neighbors(self, x: int, y: int) -> List[Tuple[int, int]]:
         neighbors = []
@@ -156,3 +225,9 @@ class Grid:
         col = (x - config.GRID_LEFT) // config.TILE_SIZE
         row = (y - config.GRID_TOP) // config.TILE_SIZE
         return self.get_tile(int(col), int(row))
+
+    def random_active_tile(self, rng: random.Random) -> Optional[Tile]:
+        active_tiles = [tile for row in self.tiles for tile in row if tile.active and not tile.obstacle]
+        if not active_tiles:
+            return None
+        return rng.choice(active_tiles)
