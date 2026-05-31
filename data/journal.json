@@ -3,12 +3,13 @@
     "fossil_crinoid": {
       "name": "Crinoid Stem",
       "code": "CS",
-      "discovered": 4,
-      "last_found": "2026-05-31",
+      "discovered": 5,
+      "last_found": "2026-06-01",
       "description": "Stacked stem segments from a sea lily-like animal.",
       "year_discovered": "1735",
       "facts": "Crinoids are echinoderms related to sea stars.",
-      "authenticated": true
+      "authenticated": true,
+      "showcase_notes": "Columnar structure is great for scale displays."
     },
     "fossil_shark_tooth": {
       "name": "Shark Tooth",
@@ -110,17 +111,25 @@
     "set_mammoth_molar": {
       "name": "Mammoth Molar",
       "description": "Large molar fragment with ridged enamel.",
+      "discovered": 2,
+      "last_found": "2026-06-01",
+      "showcase_notes": "Ridged surface looks striking in close-up."
+    },
+    "fossil_ammonite": {
+      "name": "Ammonite",
+      "description": "Spiral-shelled cephalopod fossil common in marine rock beds.",
       "discovered": 1,
-      "last_found": "2026-05-31"
+      "last_found": "2026-06-01",
+      "showcase_notes": "Spiral silhouette reads clearly under strong museum light."
     }
   },
   "sets": {},
   "best_auction": 687,
   "market_trends": {
-    "Museum Night": 4,
+    "Museum Night": 5,
     "Research Grant": 2,
     "Fraud Panic": 3,
-    "Collector Craze": 3
+    "Collector Craze": 4
   },
-  "last_updated": "2026-05-31"
+  "last_updated": "2026-06-01"
 }

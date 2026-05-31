@@ -11,6 +11,7 @@ ITEM_SPRITES_SCALED: Dict[str, pygame.Surface] = {}
 FACE_SPRITES: Dict[str, Dict[str, pygame.Surface]] = {}
 BACKGROUND_SPRITES: Dict[str, pygame.Surface] = {}
 BACKGROUND_SPRITE: Optional[pygame.Surface] = None
+TITLE_IMAGE_SPRITE: Optional[pygame.Surface] = None
 
 _loaded = False
 
@@ -306,3 +307,24 @@ def get_face_sprite(char_name: str, emotion: str) -> Optional[pygame.Surface]:
     """Retrieves a character face sprite surface or None if not loaded."""
     load_sprites()
     return FACE_SPRITES.get(char_name, {}).get(emotion, None)
+
+
+def get_title_image_sprite() -> Optional[pygame.Surface]:
+    """Retrieves the cached graphical title image sprite or None if not loaded."""
+    global TITLE_IMAGE_SPRITE
+    if TITLE_IMAGE_SPRITE is not None:
+        return TITLE_IMAGE_SPRITE
+        
+    path = "assets/sprites/characters/fossil_rush_rivals_title.png"
+    if os.path.exists(path):
+        try:
+            raw_img = pygame.image.load(path).convert_alpha()
+            # Crop empty transparent margins dynamically!
+            bbox = raw_img.get_bounding_rect()
+            if bbox.width > 0 and bbox.height > 0:
+                TITLE_IMAGE_SPRITE = raw_img.subsurface(bbox).copy()
+            else:
+                TITLE_IMAGE_SPRITE = raw_img
+        except Exception as e:
+            print(f"Warning: Failed to load title image {path}: {e}")
+    return TITLE_IMAGE_SPRITE

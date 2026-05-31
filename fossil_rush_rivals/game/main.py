@@ -109,6 +109,14 @@ def main() -> None:
                         state.journal_show_sets = True
                         state.journal_show_individuals = True
                         state.phase = config.PHASE_JOURNAL
+                        cards, _ = build_journal_view(
+                            state.journal_data,
+                            state.journal_view,
+                            state.journal_show_sets,
+                            state.journal_show_individuals,
+                        )
+                        if cards:
+                            state.journal_selected_key = cards[0]["key"]
                     elif title_buttons[2].collidepoint(event.pos):
                         running = False
                 elif state.phase == config.PHASE_JOURNAL:
@@ -157,6 +165,14 @@ def main() -> None:
                             state.journal_show_sets = True
                             state.journal_show_individuals = True
                             state.phase = config.PHASE_JOURNAL
+                            cards, _ = build_journal_view(
+                                state.journal_data,
+                                state.journal_view,
+                                state.journal_show_sets,
+                                state.journal_show_individuals,
+                            )
+                            if cards:
+                                state.journal_selected_key = cards[0]["key"]
                         elif final_buttons[1].collidepoint(event.pos):
                             state = create_game_state(start_in_title=False)
                         elif final_buttons[2].collidepoint(event.pos):
@@ -470,10 +486,6 @@ def main() -> None:
                 state.journal_show_individuals,
             )
             
-            # Automatically select the first fossil in the catalog by default!
-            if not state.journal_selected_key and cards:
-                state.journal_selected_key = cards[0]["key"]
-
             per_page = config.JOURNAL_CARDS_PER_PAGE
             max_page = 0
             if cards:
