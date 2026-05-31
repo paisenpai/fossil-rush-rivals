@@ -17,22 +17,22 @@ PLAYER_PROFILES = {
     "survey": {
         "survey_range": (10, 18),
         "reveal_range": (2, 7),
-        "rush_rate": 0.10,
-        "claim_rate": 0.10,
+        "rush_rate": 0.30,
+        "claim_rate": 0.25,
         "spread": 4.2,
     },
     "balanced": {
         "survey_range": (8, 16),
         "reveal_range": (4, 10),
-        "rush_rate": 0.22,
-        "claim_rate": 0.18,
+        "rush_rate": 0.50,
+        "claim_rate": 0.40,
         "spread": 3.4,
     },
     "rush": {
         "survey_range": (4, 12),
         "reveal_range": (6, 14),
-        "rush_rate": 0.38,
-        "claim_rate": 0.24,
+        "rush_rate": 0.75,
+        "claim_rate": 0.50,
         "spread": 2.8,
     },
 }
@@ -185,14 +185,14 @@ def main() -> None:
         remaining_actions = float(rng.integers(1, 16)) / 15.0
 
         if player_profile_key == "rush" and ai_profile_key == "survey":
-            focus_bonus = player_pressure * 0.22 + contest_pressure * 0.10
-            aggression_bonus = action_rush * 0.18 + action_claim * 0.11
+            focus_bonus = player_pressure * 0.35 + contest_pressure * 0.30
+            aggression_bonus = action_rush * 0.35 + action_claim * 0.30
         elif player_profile_key == "survey" and ai_profile_key == "rush":
-            focus_bonus = ai_pressure * 0.22 + contest_pressure * 0.08
-            aggression_bonus = action_rush * 0.20 + action_claim * 0.10
+            focus_bonus = ai_pressure * 0.35 + contest_pressure * 0.30
+            aggression_bonus = action_rush * 0.45 + action_claim * 0.35
         else:
-            focus_bonus = contest_pressure * 0.22 + survey_pressure * 0.10
-            aggression_bonus = action_rush * 0.14 + action_claim * 0.14
+            focus_bonus = contest_pressure * 0.40 + player_pressure * 0.20 + survey_pressure * 0.15
+            aggression_bonus = action_rush * 0.40 + action_claim * 0.35
 
         fossil_bias = (
             (1.0 - dist_hotspot) * 0.42
@@ -252,7 +252,7 @@ def main() -> None:
             + revealed_neighbors * 0.18
             + focus_bonus
         )
-        reward_bonus = fossil_hit * 0.25 + set_piece_hit * 0.45 + multi_tile_hit * 0.2
+        reward_bonus = fossil_hit * 0.45 + set_piece_hit * 0.65 + multi_tile_hit * 0.4
         rush_penalty = 0.0
         if action_rush and fossil_hit:
             if rng.random() < RUSH_BREAK_CHANCE:

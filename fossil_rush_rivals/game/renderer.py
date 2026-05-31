@@ -197,7 +197,13 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
                 surface.blit(tint_surf, rect.topleft)
                 # Green outline
                 pygame.draw.rect(surface, (60, 210, 60), rect, 2)
-            elif tile.state in {"hidden", "surveyed"} and not tile.claimed_by:
+            elif tile.claimed_by:
+                claim_color = (60, 200, 80, 80) if tile.claimed_by == "player" else (210, 60, 60, 80)
+                tint_surf.fill(claim_color)
+                surface.blit(tint_surf, rect.topleft)
+                border_color = (60, 210, 60) if tile.claimed_by == "player" else (255, 100, 100)
+                pygame.draw.rect(surface, border_color, rect, 2)
+            elif tile.state in {"hidden", "surveyed"}:
                 # Warm earthy brown tint over unrevealed tiles
                 tint_surf.fill((100, 55, 10, 70))
                 surface.blit(tint_surf, rect.topleft)
@@ -465,7 +471,7 @@ def draw_side_panels(
         surface.blit(scaled_rival, (825, 260))
 
 
-def draw_action_bar(surface: pygame.Surface, font: pygame.font.Font, selected_action: str) -> list[tuple[pygame.Rect, str]]:
+def draw_action_bar(surface: pygame.Surface, font: pygame.font.Font, selected_action: str, rush_left: int, claim_left: int) -> list[tuple[pygame.Rect, str]]:
     grid_width = config.GRID_COLS * config.TILE_SIZE
     bar_top = config.GRID_TOP + (config.GRID_ROWS * config.TILE_SIZE) + config.ACTION_BAR_GAP
     box_width = (grid_width - (config.ACTION_BAR_GAP * 3)) // 4
@@ -473,8 +479,8 @@ def draw_action_bar(surface: pygame.Surface, font: pygame.font.Font, selected_ac
     actions = [
         (config.ACTION_SURVEY, "1", config.ACTION_LABELS[config.ACTION_SURVEY]),
         (config.ACTION_CAREFUL, "2", config.ACTION_LABELS[config.ACTION_CAREFUL]),
-        (config.ACTION_RUSH, "3", config.ACTION_LABELS[config.ACTION_RUSH]),
-        (config.ACTION_CLAIM, "4", config.ACTION_LABELS[config.ACTION_CLAIM]),
+        (config.ACTION_RUSH, "3", f"{config.ACTION_LABELS[config.ACTION_RUSH]} ({rush_left})"),
+        (config.ACTION_CLAIM, "4", f"{config.ACTION_LABELS[config.ACTION_CLAIM]} ({claim_left})"),
     ]
 
     button_rects: list[tuple[pygame.Rect, str]] = []
@@ -486,7 +492,7 @@ def draw_action_bar(surface: pygame.Surface, font: pygame.font.Font, selected_ac
         is_active = (selected_action == action_key)
 
         # Draw wooden button plaque
-        _draw_button(surface, box_rect, f"{label} [{hotkey}]", font, active=is_active)
+        _draw_button(surface, box_rect, label, font, active=is_active)
         button_rects.append((box_rect, action_key))
 
     return button_rects

@@ -131,7 +131,7 @@ def _apply_dig(tile: Tile, owner: str, fossils: Dict[str, Fossil], action: str, 
 
 def apply_claim(tile: Tile, owner: str) -> None:
     tile.claimed_by = owner
-    tile.claim_turns_left = 1
+    tile.claim_turns_left = 2
 
 
 def can_target_tile(

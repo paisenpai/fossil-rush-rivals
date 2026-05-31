@@ -1,8 +1,7 @@
 {
-  "node_count": 15,
+  "node_count": 1,
   "max_depth": 3,
   "classes": [
-    1,
     2
   ],
   "feature_importances": {
@@ -15,14 +14,20 @@
     "owned_by_actor": 0.0,
     "action_rush": 0.0,
     "action_claim": 0.0,
-    "revealed_neighbors": 0.3443002553602258,
-    "surveyed_neighbors": 0.0034986020665563645,
-    "dist_survey": 0.6522011425732178,
+    "revealed_neighbors": 0.0,
+    "surveyed_neighbors": 0.0,
+    "dist_survey": 0.0,
     "dist_player_reveal": 0.0,
     "remaining_actions": 0.0,
     "dig_progress": 0.0,
     "dig_required": 0.0
   },
+  "rules": [
+    {
+      "label": "2",
+      "score": 1.0
+    }
+  ],
   "feature_names": [
     "x_norm",
     "y_norm",

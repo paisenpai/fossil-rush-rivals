@@ -3,7 +3,7 @@
     "fossil_crinoid": {
       "name": "Crinoid Stem",
       "code": "CS",
-      "discovered": 3,
+      "discovered": 4,
       "last_found": "2026-05-31",
       "description": "Stacked stem segments from a sea lily-like animal.",
       "year_discovered": "1735",
@@ -74,7 +74,7 @@
     "fossil_trilobite": {
       "name": "Trilobite",
       "description": "Segmented marine arthropod known for its armored exoskeleton.",
-      "discovered": 2,
+      "discovered": 3,
       "last_found": "2026-05-31",
       "year_discovered": "1698",
       "facts": "Trilobites dominated Paleozoic seas for over 250 million years.",
@@ -119,7 +119,7 @@
   "market_trends": {
     "Museum Night": 4,
     "Research Grant": 2,
-    "Fraud Panic": 2,
+    "Fraud Panic": 3,
     "Collector Craze": 3
   },
   "last_updated": "2026-05-31"

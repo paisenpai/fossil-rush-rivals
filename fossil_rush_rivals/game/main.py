@@ -454,7 +454,7 @@ def main() -> None:
             )
             draw_grid(screen, state.grid, label_font, state.hover_tile)
             if state.phase == config.PHASE_EXCAVATION:
-                action_bar_buttons = draw_action_bar(screen, label_font, state.selected_action)
+                action_bar_buttons = draw_action_bar(screen, label_font, state.selected_action, state.player_rush_left, state.player_claim_left)
                 draw_narration(screen, label_font, state.narration)
             else:
                 # Overlay the dig-complete announcement on top of the frozen grid
