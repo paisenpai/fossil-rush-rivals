@@ -29,6 +29,7 @@ from .renderer import (
     draw_excavation_hud,
     draw_characters,
     draw_title_screen,
+    draw_pause_menu,
 )
 from .ui import build_fonts
 from . import sprites
@@ -60,6 +61,9 @@ def main() -> None:
     journal_individual_toggle = None
     lab_done_button = None
     action_bar_buttons: list[tuple[pygame.Rect, str]] = []
+    pause_resume_btn = None
+    pause_retry_btn = None
+    pause_quit_btn = None
 
     def _direction_from_delta(dx: int, dy: int) -> str:
         mapping = {
@@ -86,10 +90,26 @@ def main() -> None:
 
     while running:
         delta_ms = clock.tick(config.FPS)
+        
+        if state.is_paused:
+            state.excavation_start_ticks += delta_ms
+            state.player_move_cooldown_until += delta_ms
+            state.ai_move_cooldown_until += delta_ms
+            state.player_action_cooldown_until += delta_ms
+            state.ai_action_cooldown_until += delta_ms
+            state.player_survey_ready_at += delta_ms
+            state.ai_survey_ready_at += delta_ms
+            state.ai_next_think_at += delta_ms
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if state.phase in {config.PHASE_EXCAVATION, config.PHASE_DIG_COMPLETE}:
+                    state.is_paused = not state.is_paused
             elif event.type == pygame.MOUSEMOTION:
+                if state.is_paused:
+                    continue
                 if state.phase == config.PHASE_EXCAVATION:
                     tile = state.grid.tile_at_pixel(event.pos)
                     state.hover_tile = tile
@@ -98,6 +118,14 @@ def main() -> None:
                     else:
                         state.narration = config.NARRATION_TEXT
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if state.is_paused:
+                    if pause_resume_btn and pause_resume_btn.collidepoint(event.pos):
+                        state.is_paused = False
+                    elif pause_retry_btn and pause_retry_btn.collidepoint(event.pos):
+                        state = create_game_state(start_in_title=False)
+                    elif pause_quit_btn and pause_quit_btn.collidepoint(event.pos):
+                        state = create_game_state(start_in_title=True)
+                    continue
                 if state.phase == config.PHASE_TITLE and title_buttons:
                     if title_buttons[0].collidepoint(event.pos):
                         state = create_game_state(start_in_title=False)
@@ -181,6 +209,8 @@ def main() -> None:
                     if lab_done_button and lab_done_button.collidepoint(event.pos):
                         state.lab_substate = config.LAB_SUB_CONFIRM
             elif event.type == pygame.KEYDOWN:
+                if state.is_paused:
+                    continue
                 if state.phase == config.PHASE_EXCAVATION:
                     now = pygame.time.get_ticks()
                     action_key = None
@@ -367,7 +397,7 @@ def main() -> None:
                         if event.key == pygame.K_RETURN:
                             state = create_game_state(start_in_title=True)
 
-        if state.phase == config.PHASE_EXCAVATION:
+        if state.phase == config.PHASE_EXCAVATION and not state.is_paused:
             now = pygame.time.get_ticks()
             if state.excavation_start_ticks == 0:
                 state.excavation_start_ticks = now
@@ -544,6 +574,9 @@ def main() -> None:
                 draw_dig_complete_screen(screen, label_font)
                 # Redraw the header on top of the overlay so "Dig Site Closed" remains visible
                 draw_header(screen, title_font, label_font, state.phase)
+            
+            if state.is_paused:
+                pause_resume_btn, pause_retry_btn, pause_quit_btn = draw_pause_menu(screen, title_font, label_font)
         elif state.phase == config.PHASE_LAB:
             player_fossils = list_owned_fossils(state.fossils, "player")
             ai_fossils = list_owned_fossils(state.fossils, "ai")

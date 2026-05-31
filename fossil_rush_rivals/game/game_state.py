@@ -69,6 +69,7 @@ class GameState:
     journal_show_sets: bool
     journal_show_individuals: bool
     bg_key: str
+    is_paused: bool
 
 
 def create_game_state(start_in_title: bool = True) -> GameState:
@@ -142,5 +143,6 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         journal_show_sets=True,
         journal_show_individuals=True,
         bg_key="homescreen" if start_in_title else "playing_day",
+        is_paused=False,
     )
 

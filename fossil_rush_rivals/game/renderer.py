@@ -1125,3 +1125,34 @@ def draw_market_final_screen(surface: pygame.Surface, font: pygame.font.Font, li
     for rect, label in zip(rects, labels):
         _draw_button(surface, rect, label, font)
     return rects
+
+
+def draw_pause_menu(surface: pygame.Surface, title_font: pygame.font.Font, label_font: pygame.font.Font) -> tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
+    # Darken the screen
+    overlay = pygame.Surface((config.WINDOW_WIDTH, config.WINDOW_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 150))
+    surface.blit(overlay, (0, 0))
+
+    panel_w = 400
+    panel_h = 300
+    panel_rect = pygame.Rect(
+        (config.WINDOW_WIDTH - panel_w) // 2,
+        (config.WINDOW_HEIGHT - panel_h) // 2,
+        panel_w,
+        panel_h
+    )
+    _panel(surface, panel_rect)
+
+    title_w = title_font.size("Paused")[0]
+    draw_text(surface, "Paused", (panel_rect.centerx - title_w // 2, panel_rect.y + 30), title_font, config.THEME_TEXT_GOLD)
+
+    resume_rect = pygame.Rect(panel_rect.centerx - config.BUTTON_WIDTH // 2, panel_rect.y + 100, config.BUTTON_WIDTH, config.BUTTON_HEIGHT)
+    retry_rect = pygame.Rect(panel_rect.centerx - config.BUTTON_WIDTH // 2, panel_rect.y + 160, config.BUTTON_WIDTH, config.BUTTON_HEIGHT)
+    quit_rect = pygame.Rect(panel_rect.centerx - config.BUTTON_WIDTH // 2, panel_rect.y + 220, config.BUTTON_WIDTH, config.BUTTON_HEIGHT)
+
+    _draw_button(surface, resume_rect, "Resume (ESC)", label_font)
+    _draw_button(surface, retry_rect, "Retry Match", label_font)
+    _draw_button(surface, quit_rect, "Quit to Menu", label_font)
+
+    return resume_rect, retry_rect, quit_rect
+
