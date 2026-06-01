@@ -410,6 +410,18 @@ def draw_narration(surface: pygame.Surface, font: pygame.font.Font, narration: s
     draw_text(surface, narration, (box_rect.x + 16, box_rect.y + 22), font, config.THEME_TEXT_GOLD)
 
 
+def draw_excavation_controls_hint(surface: pygame.Surface) -> None:
+    hint_font = pygame.font.SysFont("georgia", 14)
+    hint_text = "Move: WASD/Arrows  Dig: Space  Rush: Shift+Space  Survey: E  Claim: Q"
+    text_w = hint_font.size(hint_text)[0]
+    x = config.GRID_LEFT
+    y = config.WINDOW_HEIGHT - 22
+    shadow = hint_font.render(hint_text, True, config.THEME_TEXT_SHADOW)
+    surface.blit(shadow, (x + 1, y + 1))
+    rendered = hint_font.render(hint_text, True, config.THEME_TEXT_CREAM)
+    surface.blit(rendered, (x, y))
+
+
 def draw_header(surface: pygame.Surface, title_font: pygame.font.Font, label_font: pygame.font.Font, phase_text: str) -> None:
     if phase_text == config.PHASE_TITLE:
         return
@@ -752,6 +764,11 @@ def draw_lab_focus_screen(
                 px = cell_x + (slot_w - scaled_w) // 2
                 py = cell_y + (slot_h - scaled_h) // 2
                 surface.blit(scaled_sprite, (px, py))
+
+            status_text = "Damaged" if fossil.condition < 1.0 or fossil.broken else "Intact"
+            status_color = config.THEME_TEXT_GOLD if status_text == "Intact" else config.THEME_TEXT_CREAM
+            status_w = font.size(status_text)[0]
+            draw_text(surface, status_text, (cell_rect.centerx - status_w // 2, cell_rect.bottom - 18), font, status_color)
                 
         # Draw selected fossil name centered below the grid
         if fossil_index < len(player_fossils):

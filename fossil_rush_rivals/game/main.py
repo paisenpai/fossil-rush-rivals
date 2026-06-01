@@ -16,6 +16,7 @@ from .journal import build_journal_view, get_entry_details, load_journal, save_j
 from .renderer import (
     draw_action_bar,
     draw_dig_complete_screen,
+    draw_excavation_controls_hint,
     draw_grid,
     draw_header,
     draw_lab_confirm_screen,
@@ -689,6 +690,7 @@ def main() -> None:
             draw_characters(screen, label_font, state)
             if state.phase == config.PHASE_EXCAVATION:
                 draw_excavation_hud(screen, label_font, state)
+                draw_excavation_controls_hint(screen)
             else:
                 # Overlay the dig-complete dimming on top of the frozen grid
                 draw_dig_complete_screen(screen, label_font, False)

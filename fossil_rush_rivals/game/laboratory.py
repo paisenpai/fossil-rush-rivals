@@ -24,8 +24,8 @@ def apply_lab_focus(fossil: Fossil, focus: str, rng) -> str:
 		return f"{owner_label}: Authentication failed for {fossil.name}. ({damage_note})"
 	if focus == config.LAB_RESTORE:
 		if rng.random() <= config.LAB_RESTORE_SUCCESS:
-			boost = rng.uniform(0.2, 0.35)
-			fossil.condition = min(1.0, fossil.condition + boost)
+			fossil.condition = 1.0
+			fossil.broken = False
 			damage_note = "Damaged" if fossil.condition < 1.0 else "Intact"
 			return f"{owner_label}: {fossil.name} was restored. ({damage_note})"
 		return f"{owner_label}: Restore failed for {fossil.name}. ({damage_note})"
