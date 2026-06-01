@@ -106,15 +106,16 @@ def load_sprites() -> None:
         "walk_nw",
     ]
     action_states = [
-        "dig_n", "dig_s",
-        "claim_n", "claim_s",
-        "survey_n", "survey_s",
+          "claim_n", "claim_s",
+          "mine_n", "mine_e", "mine_s", "mine_w",
+          "smash_n", "smash_s",
+          "survey_n", "survey_s",
     ]
 
     chars_config = {
-        "player": movement_states + action_states,
-        "rival": movement_states + action_states,
-        "auctioneer": ["front_idle", "left_idle", "right_idle", "gesture"],
+          "player": movement_states + action_states,
+          "rival": movement_states + action_states,
+          "auctioneer": ["idle", "gesture"],
     }
 
     for char_name, states in chars_config.items():
@@ -144,33 +145,25 @@ def load_sprites() -> None:
         "fossil_fern", "fossil_wood", "fossil_brachiopod",
         "fossil_crinoid", "fossil_coprolite", "fossil_bone_fragment",
         # Terrain / Ground
-        "decoy", "hidden_dirt", "surveyed_dirt", "surveyed_partial", "empty_dirt", "claimed_zone",
+        "decoy",
+        "hidden_dirt",
+        "surveyed_dirt",
+        "surveyed_dirt_initial",
+        "surveyed_dirt_none",
+        "surveyed_dirt_detected",
+        "surveyed_partial",
+        "empty_dirt",
+        "claimed_zone",
         "fossil_fragment",
+        "obstacle_bcenter",
         "obstacle_center",
-        "obstacle_edge_n",
-        "obstacle_edge_e",
-        "obstacle_edge_s",
-        "obstacle_edge_w",
-        "obstacle_corner_ne",
-        "obstacle_corner_nw",
-        "obstacle_corner_se",
-        "obstacle_corner_sw",
+        "obstacle_left",
+        "obstacle_right",
+        "obstacle_dleft",
+        "obstacle_dright",
     ]
 
     procedural_items = {
-        "hidden_dirt": lambda: _build_dirt_tile("hidden"),
-        "surveyed_dirt": lambda: _build_dirt_tile("surveyed"),
-        "surveyed_partial": lambda: _build_dirt_tile("partial"),
-        "empty_dirt": lambda: _build_dirt_tile("empty"),
-        "obstacle_center": lambda: _build_obstacle_tile("center"),
-        "obstacle_edge_n": lambda: _build_obstacle_tile("edge_n"),
-        "obstacle_edge_e": lambda: _build_obstacle_tile("edge_e"),
-        "obstacle_edge_s": lambda: _build_obstacle_tile("edge_s"),
-        "obstacle_edge_w": lambda: _build_obstacle_tile("edge_w"),
-        "obstacle_corner_ne": lambda: _build_obstacle_tile("corner_ne"),
-        "obstacle_corner_nw": lambda: _build_obstacle_tile("corner_nw"),
-        "obstacle_corner_se": lambda: _build_obstacle_tile("corner_se"),
-        "obstacle_corner_sw": lambda: _build_obstacle_tile("corner_sw"),
         "fossil_fragment": _build_fossil_fragment,
     }
 
@@ -193,11 +186,6 @@ def load_sprites() -> None:
             ITEM_SPRITES_SCALED[item_key] = surf
         else:
             print(f"Warning: Item sprite file {path} not found.")
-
-    for key in ("hidden_dirt", "surveyed_dirt", "surveyed_partial", "empty_dirt"):
-        surface = _build_dirt_tile("partial" if key == "surveyed_partial" else key.split("_")[0])
-        ITEM_SPRITES[key] = surface
-        ITEM_SPRITES_SCALED[key] = surface
 
     # Load Dynamic backgrounds
     bg_dir = "assets/sprites/backgrounds"
@@ -227,8 +215,6 @@ def load_sprites() -> None:
             BACKGROUND_SPRITE = pygame.transform.smoothscale(bg_surf, (config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
         except Exception as e:
             print(f"Warning: Failed to load background {bg_path}: {e}")
-    else:
-        print(f"Warning: Background file {bg_path} not found.")
 
     # Load emotion sprites if available
     emotions_dir = os.path.join(chars_dir, "emotion")
@@ -245,8 +231,6 @@ def load_sprites() -> None:
                         EMOTION_SPRITES[char_name][emotion.capitalize()] = surf
                     except Exception as e:
                         print(f"Warning: Failed to load emotion sprite {path}: {e}")
-                else:
-                    print(f"Warning: Emotion sprite file {path} not found.")
 
     # Load and Slice Facial Expressions sheet
     faces_path = "assets/characters_facial_expression.png"
@@ -265,14 +249,8 @@ def load_sprites() -> None:
                             surf.set_at((x, y), (0, 0, 0, 0))
                 return surf
 
-            # The sheet is a 4-column × 3-row grid of face portraits.
-            # Row 0 = Player, Row 1 = Rival, Row 2 = Auctioneer
-            # Column 0 = Focused, Column 1 = Anxious, Column 2 = Elated, Column 3 = Defeated
-            #
-            # Measured crop boxes (x, y, w, h) for each cell — derived from the actual image layout.
-            # Each character occupies roughly 1/4 of the sheet width per column, 1/3 of the height per row.
-            col_w = sheet_w // 4   # ~270 px per column
-            row_h = sheet_h // 3   # ~360 px per row
+            col_w = sheet_w // 4
+            row_h = sheet_h // 3
 
             emotions_order = ["Focused", "Anxious", "Elated", "Defeated"]
             chars_order = ["player", "rival", "auctioneer"]
@@ -283,15 +261,13 @@ def load_sprites() -> None:
 
                 for col_idx, emotion in enumerate(emotions_order):
                     col_x = col_idx * col_w
-                    # Add small inset padding to trim the label area at top and border noise
-                    inset_top = int(row_h * 0.22)   # skip the emotion text label row
-                    inset_side = int(col_w * 0.08)  # trim left/right border noise
+                    inset_top = int(row_h * 0.22)
+                    inset_side = int(col_w * 0.08)
                     crop_x = col_x + inset_side
                     crop_y = row_y + inset_top
                     crop_w = col_w - inset_side * 2
                     crop_h = row_h - inset_top - int(row_h * 0.05)
 
-                    # Clamp to sheet bounds
                     crop_x = max(0, min(crop_x, sheet_w - 1))
                     crop_y = max(0, min(crop_y, sheet_h - 1))
                     crop_w = min(crop_w, sheet_w - crop_x)
@@ -300,11 +276,10 @@ def load_sprites() -> None:
                     if crop_w > 0 and crop_h > 0:
                         sub = faces_sheet.subsurface(pygame.Rect(crop_x, crop_y, crop_w, crop_h))
                         FACE_SPRITES[char_name][emotion] = clean_face_bg(sub.copy())
-                
         except Exception as e:
             print(f"Warning: Failed to slice facial expressions: {e}")
-    else:
-        print(f"Warning: Facial expressions sheet {faces_path} not found.")
+    elif config.AI_DEBUG_LOG:
+        print(f"Debug: Facial expressions sheet {faces_path} not found.")
 
     _loaded = True
 
@@ -346,7 +321,7 @@ def get_title_image_sprite() -> Optional[pygame.Surface]:
     if TITLE_IMAGE_SPRITE is not None:
         return TITLE_IMAGE_SPRITE
         
-    path = "assets/sprites/characters/fossil_rush_rivals_title.png"
+    path = "assets/sprites/title.png"
     if os.path.exists(path):
         try:
             raw_img = pygame.image.load(path).convert_alpha()

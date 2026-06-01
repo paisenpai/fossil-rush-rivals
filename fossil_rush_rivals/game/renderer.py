@@ -140,34 +140,33 @@ def _obstacle_sprite_key(grid: Grid, tile: Tile) -> str:
     south = grid.get_tile(tile.x, tile.y + 1)
     west = grid.get_tile(tile.x - 1, tile.y)
     east = grid.get_tile(tile.x + 1, tile.y)
+    nw = grid.get_tile(tile.x - 1, tile.y - 1)
+    ne = grid.get_tile(tile.x + 1, tile.y - 1)
+    sw = grid.get_tile(tile.x - 1, tile.y + 1)
+    se = grid.get_tile(tile.x + 1, tile.y + 1)
 
     n = north is not None and north.obstacle
     s = south is not None and south.obstacle
     w = west is not None and west.obstacle
     e = east is not None and east.obstacle
+    diag_left = (nw is not None and nw.obstacle) or (sw is not None and sw.obstacle)
+    diag_right = (ne is not None and ne.obstacle) or (se is not None and se.obstacle)
 
-    if n and s and w and e:
-        return "obstacle_center"
-    if n and e and not s and not w:
-        return "obstacle_corner_ne"
-    if n and w and not s and not e:
-        return "obstacle_corner_nw"
-    if s and e and not n and not w:
-        return "obstacle_corner_se"
-    if s and w and not n and not e:
-        return "obstacle_corner_sw"
-    if not n and (s or w or e):
-        return "obstacle_edge_n"
-    if not s and (n or w or e):
-        return "obstacle_edge_s"
-    if not w and (n or s or e):
-        return "obstacle_edge_w"
-    if not e and (n or s or w):
-        return "obstacle_edge_e"
+    if not n and not s and not w and not e and (diag_left or diag_right):
+        return "obstacle_dleft" if diag_left else "obstacle_dright"
+
+    if not s:
+        if e and not w:
+            return "obstacle_left"
+        if w and not e:
+            return "obstacle_right"
+        return "obstacle_bcenter"
+
     return "obstacle_center"
 
 
 def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover_tile: Optional[Tile]) -> None:
+    now = pygame.time.get_ticks()
     for row in range(config.GRID_ROWS):
         for col in range(config.GRID_COLS):
             tile = grid.tiles[row][col]
@@ -193,10 +192,19 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
                 else:
                     sprite = sprites.get_item_sprite("hidden_dirt", scaled=True)
             elif tile.state == "surveyed":
-                if tile.content_type in {"fossil", "decoy"}:
-                    sprite = sprites.get_item_sprite("surveyed_partial", scaled=True)
-                else:
-                    sprite = sprites.get_item_sprite("surveyed_dirt", scaled=True)
+                if tile.survey_state == "initial":
+                    if now - tile.survey_started_at >= 1000:
+                        tile.survey_state = tile.survey_result or "none"
+                    else:
+                        sprite = sprites.get_item_sprite("surveyed_dirt_initial", scaled=True)
+
+                if not sprite:
+                    if tile.survey_state == "detected":
+                        sprite = sprites.get_item_sprite("surveyed_dirt_detected", scaled=True)
+                    elif tile.survey_state == "none":
+                        sprite = sprites.get_item_sprite("surveyed_dirt_none", scaled=True)
+                    else:
+                        sprite = sprites.get_item_sprite("surveyed_dirt", scaled=True)
             elif tile.state == "revealed":
                 if tile.content_type == "empty":
                     sprite = sprites.get_item_sprite("empty_dirt", scaled=True)
@@ -258,8 +266,10 @@ def draw_characters(surface: pygame.Surface, font: pygame.font.Font, state) -> N
         return "s"
 
     def _action_pose(action_key: Optional[str]) -> Optional[str]:
-        if action_key == config.ACTION_CAREFUL or action_key == config.ACTION_RUSH:
-            return "dig"
+        if action_key == config.ACTION_CAREFUL:
+            return "mine"
+        if action_key == config.ACTION_RUSH:
+            return "smash"
         if action_key == config.ACTION_CLAIM:
             return "claim"
         if action_key == config.ACTION_SURVEY:
@@ -299,8 +309,17 @@ def draw_characters(surface: pygame.Surface, font: pygame.font.Font, state) -> N
         if not pose:
             pose = "walk"
 
-        if pose in {"dig", "claim", "survey"}:
+        if pose in {"smash", "claim", "survey"}:
             direction = "n" if facing in {"n", "ne", "nw"} else "s"
+        elif pose == "mine":
+            if facing in {"n", "ne", "nw"}:
+                direction = "n"
+            elif facing in {"s", "se", "sw"}:
+                direction = "s"
+            elif facing == "w":
+                direction = "w"
+            else:
+                direction = "e"
 
         sprite_key = f"{pose}_{direction}"
         sprite = sprites.get_character_sprite(actor_key, sprite_key)
@@ -376,78 +395,37 @@ def draw_title_screen(
     title_font: pygame.font.Font,
     font: pygame.font.Font,
 ) -> list[pygame.Rect]:
-    import math
+    labels = ["Start Match", "Field Journal", "Quit"]
+    rects = _button_rects(labels, start_y=0)
+    buttons_total_h = rects[-1].bottom - rects[0].top
+    total_h = buttons_total_h
+    logo_size = None
+    logo_gap = 20
 
-    # Gilded Ancient Stone Banner plaque
-    title_rect = pygame.Rect(80, 100, config.WINDOW_WIDTH - 160, 160)
-    
-    # 3D plaque shadow
-    pygame.draw.rect(surface, (15, 12, 10), title_rect.move(4, 4))
-    _panel(surface, title_rect)
-    
-    # Elegant double inner highlight border in gold and warm oak wood
-    pygame.draw.rect(surface, config.THEME_GOLD_ACCENT, title_rect.inflate(-16, -16), 1)
-    pygame.draw.rect(surface, config.THEME_WOOD_LIGHT, title_rect.inflate(-20, -20), 1)
-
-    # Draw graphical title image if available, otherwise fallback to styled 3D text
     title_logo = sprites.get_title_image_sprite()
     if title_logo:
         orig_w, orig_h = title_logo.get_size()
-        # Scale to occupy almost the entire container: max width of 752, max height of 128 dynamically
-        scale_ratio = min(752 / orig_w, 128 / orig_h)
+        max_w = config.WINDOW_WIDTH - 120
+        max_h = 240
+        scale_ratio = min(max_w / orig_w, max_h / orig_h)
         scaled_w = int(orig_w * scale_ratio)
         scaled_h = int(orig_h * scale_ratio)
         scaled_logo = pygame.transform.smoothscale(title_logo, (scaled_w, scaled_h))
-        
-        # Center inside title_rect perfectly
-        logo_x = title_rect.centerx - scaled_w // 2
-        logo_y = title_rect.centery - scaled_h // 2
+        logo_size = (scaled_w, scaled_h)
+        total_h += scaled_h + logo_gap
+
+    center_y = config.WINDOW_HEIGHT // 2
+    top_y = center_y - (total_h // 2)
+
+    if title_logo and logo_size:
+        logo_x = (config.WINDOW_WIDTH - logo_size[0]) // 2
+        logo_y = top_y
         surface.blit(scaled_logo, (logo_x, logo_y))
+        buttons_start_y = logo_y + logo_size[1] + logo_gap
     else:
-        # Flank with soft bobbing high-resolution fossil sprites on left and right!
-        bobbing = int(3 * math.sin(pygame.time.get_ticks() / 150))
-        
-        # Left fossil: Ammonite
-        fossil_l = sprites.get_item_sprite("fossil_ammonite", scaled=False)
-        if fossil_l:
-            scaled_l = pygame.transform.smoothscale(fossil_l, (80, 80))
-            lx = title_rect.x + 32
-            ly = title_rect.y + 40 + bobbing
-            surface.blit(scaled_l, (lx, ly))
+        buttons_start_y = top_y
 
-        # Right fossil: Trilobite
-        fossil_r = sprites.get_item_sprite("fossil_trilobite", scaled=False)
-        if fossil_r:
-            scaled_r = pygame.transform.smoothscale(fossil_r, (80, 80))
-            rx = title_rect.right - 112
-            ry = title_rect.y + 40 + bobbing
-            surface.blit(scaled_r, (rx, ry))
-
-        # Fallback to the original text layout if logo not found
-        title_surface = title_font.render("Fossil Rush Rivals", True, (255, 240, 180))
-        title_pos = title_surface.get_rect(center=title_rect.center)
-        title_pos.y -= 14
-        surface.blit(title_font.render("Fossil Rush Rivals", True, (40, 20, 10)), title_pos.move(3, 3))
-        surface.blit(title_font.render("Fossil Rush Rivals", True, (215, 175, 60)), title_pos.move(1, 1))
-        surface.blit(title_surface, title_pos)
-
-        # Catchy game-loop subtitle at the bottom of the banner
-        subtitle_text = "EXCAVATE  •  RESTORE  •  OUTBID"
-        sub_w = font.size(subtitle_text)[0]
-        sub_x = title_rect.centerx - sub_w // 2
-        sub_y = title_rect.bottom - 42
-        draw_text(surface, subtitle_text, (sub_x, sub_y), font, config.THEME_TEXT_GOLD)
-
-    # Draw the Player character on the title screen for a premium first impression!
-    player_sprite = sprites.get_character_sprite("player", "walk_s")
-    if player_sprite:
-        scaled_player = pygame.transform.smoothscale(player_sprite, (110, 160))
-        player_x = (config.WINDOW_WIDTH - 110) // 2
-        player_y = 540
-        surface.blit(scaled_player, (player_x, player_y))
-
-    labels = ["Start Match", "Field Journal", "Quit"]
-    rects = _button_rects(labels, start_y=320)
+    rects = _button_rects(labels, start_y=buttons_start_y)
     for rect, label in zip(rects, labels):
         _draw_button(surface, rect, label, font)
     return rects

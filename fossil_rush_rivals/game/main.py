@@ -253,6 +253,7 @@ def main() -> None:
                                 "player",
                                 state.rng,
                                 state.fossils,
+                                now,
                             )
                             state.player_last_action = action_key
                             state.player_last_action_ticks = now
@@ -486,6 +487,7 @@ def main() -> None:
                                     "ai",
                                     state.rng,
                                     state.fossils,
+                                    now,
                                 )
                                 state.ai_last_action = action_key
                                 state.ai_last_action_ticks = now

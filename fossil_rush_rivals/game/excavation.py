@@ -46,9 +46,12 @@ def _apply_damage(tile: Tile, fossils: Dict[str, Fossil], rng, actor: str, actio
     return ""
 
 
-def apply_survey(tile: Tile, fossils: Dict[str, Fossil]) -> None:
+def apply_survey(tile: Tile, fossils: Dict[str, Fossil], now_ms: int) -> None:
     tile.state = "surveyed"
+    tile.survey_state = "initial"
+    tile.survey_started_at = now_ms
     if tile.content_type in {"fossil", "decoy"}:
+        tile.survey_result = "detected"
         tile.dig_progress = 0
         tile.dig_required = 1
         if tile.content_type == "fossil" and tile.fossil_id and tile.fossil_id in fossils:
@@ -58,14 +61,18 @@ def apply_survey(tile: Tile, fossils: Dict[str, Fossil]) -> None:
                 return
         tile.survey_hint = "fossil traces"
     else:
+        tile.survey_result = "none"
         tile.dig_progress = 0
         tile.dig_required = 1
         tile.survey_hint = "faint traces"
 
 
-def apply_partial_reveal(tile: Tile, fossils: Dict[str, Fossil]) -> None:
+def apply_partial_reveal(tile: Tile, fossils: Dict[str, Fossil], now_ms: int) -> None:
     tile.state = "surveyed"
+    tile.survey_state = "initial"
+    tile.survey_started_at = now_ms
     if tile.content_type in {"fossil", "decoy"}:
+        tile.survey_result = "detected"
         tile.dig_progress = 0
         tile.dig_required = 1
         if tile.content_type == "fossil" and tile.fossil_id and tile.fossil_id in fossils:
@@ -75,11 +82,15 @@ def apply_partial_reveal(tile: Tile, fossils: Dict[str, Fossil]) -> None:
                 return
         tile.survey_hint = "fossil traces"
     else:
+        tile.survey_result = "none"
         tile.survey_hint = "disturbed ground"
 
 
 def apply_reveal(tile: Tile, owner: str) -> None:
     tile.state = "revealed"
+    tile.survey_state = None
+    tile.survey_result = None
+    tile.survey_started_at = 0
     if tile.content_type == "fossil":
         tile.owner = owner
     else:
@@ -178,7 +189,15 @@ def _valid_partial_tiles(tiles: Iterable[Tile], actor: str, fossils: Dict[str, F
     return valid
 
 
-def apply_action(action: str, grid: Grid, tile: Tile, actor: str, rng, fossils: Dict[str, Fossil]) -> str:
+def apply_action(
+    action: str,
+    grid: Grid,
+    tile: Tile,
+    actor: str,
+    rng,
+    fossils: Dict[str, Fossil],
+    now_ms: int,
+) -> str:
     actor_label = config.PLAYER_LABEL if actor == "player" else config.AI_LABEL
     if action == config.ACTION_SURVEY:
         tiles = _cross_tiles(grid, tile)
@@ -187,7 +206,7 @@ def apply_action(action: str, grid: Grid, tile: Tile, actor: str, rng, fossils: 
             if _fossil_owned_by_other(survey_tile, actor, fossils):
                 continue
             if is_tile_actionable(survey_tile):
-                apply_survey(survey_tile, fossils)
+                apply_survey(survey_tile, fossils, now_ms)
                 count += 1
         return f"{actor_label} surveys a cross of {count} tiles."
     if action == config.ACTION_CAREFUL:
@@ -199,7 +218,7 @@ def apply_action(action: str, grid: Grid, tile: Tile, actor: str, rng, fossils: 
         if valid:
             count = min(len(valid), rng.randint(3, 6))
             for splash_tile in rng.sample(valid, count):
-                apply_partial_reveal(splash_tile, fossils)
+                apply_partial_reveal(splash_tile, fossils, now_ms)
             return f"{action_text} The rush shakes {count} adjacent tiles."
         return action_text
     if action == config.ACTION_CLAIM:

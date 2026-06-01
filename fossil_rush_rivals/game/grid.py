@@ -23,6 +23,9 @@ class Tile:
     dig_progress: int = 0
     dig_required: int = 1
     survey_hint: Optional[str] = None
+    survey_state: Optional[str] = None
+    survey_result: Optional[str] = None
+    survey_started_at: int = 0
     obstacle: bool = False
 
     def label(self) -> str:
@@ -101,11 +104,21 @@ class Grid:
         rng = random.Random(self.seed + 19)
         target = rng.randint(config.OBSTACLE_TILE_MIN, config.OBSTACLE_TILE_MAX)
         clusters = rng.randint(config.OBSTACLE_CLUSTER_MIN, config.OBSTACLE_CLUSTER_MAX)
+        spacing = max(0, config.OBSTACLE_CLUSTER_SPACING)
         obstacles: set[Tuple[int, int]] = set()
 
         active_list = [coord for coord in active]
         if not active_list:
             return
+
+        def is_far_enough(coord: Tuple[int, int]) -> bool:
+            if spacing <= 0:
+                return True
+            cx, cy = coord
+            for ox, oy in obstacles:
+                if abs(ox - cx) + abs(oy - cy) <= spacing:
+                    return False
+            return True
 
         for _ in range(clusters):
             if len(obstacles) >= target:
@@ -115,8 +128,16 @@ class Grid:
                 remaining,
                 rng.randint(config.OBSTACLE_CLUSTER_SIZE_MIN, config.OBSTACLE_CLUSTER_SIZE_MAX),
             )
-            seed = rng.choice(active_list)
-            if seed in obstacles:
+            seed = None
+            for _attempt in range(20):
+                candidate = rng.choice(active_list)
+                if candidate in obstacles:
+                    continue
+                if not is_far_enough(candidate):
+                    continue
+                seed = candidate
+                break
+            if seed is None:
                 continue
             shape = rng.choice(["blob", "line", "circle"])
             cluster = set()
@@ -125,7 +146,7 @@ class Grid:
                 direction = rng.choice([(1, 0), (0, 1), (1, 1), (-1, 1)])
                 cx, cy = seed
                 for _ in range(cluster_size * 2):
-                    if (cx, cy) in active and (cx, cy) not in obstacles:
+                    if (cx, cy) in active and (cx, cy) not in obstacles and is_far_enough((cx, cy)):
                         cluster.add((cx, cy))
                     if len(cluster) >= cluster_size:
                         break
@@ -136,7 +157,7 @@ class Grid:
                 cx, cy = seed
                 for x in range(cx - radius, cx + radius + 1):
                     for y in range(cy - radius, cy + radius + 1):
-                        if (x, y) in active and (x, y) not in obstacles:
+                        if (x, y) in active and (x, y) not in obstacles and is_far_enough((x, y)):
                             if math.hypot(x - cx, y - cy) <= radius + 0.25:
                                 cluster.add((x, y))
                 if len(cluster) > cluster_size:
@@ -145,12 +166,17 @@ class Grid:
                 frontier = [seed]
                 while frontier and len(cluster) < cluster_size:
                     cx, cy = frontier.pop(0)
-                    if (cx, cy) in active and (cx, cy) not in obstacles:
+                    if (cx, cy) in active and (cx, cy) not in obstacles and is_far_enough((cx, cy)):
                         cluster.add((cx, cy))
                     neighbors = self._neighbors(cx, cy)
                     rng.shuffle(neighbors)
                     for nx, ny in neighbors:
-                        if (nx, ny) in active and (nx, ny) not in obstacles and (nx, ny) not in cluster:
+                        if (
+                            (nx, ny) in active
+                            and (nx, ny) not in obstacles
+                            and (nx, ny) not in cluster
+                            and is_far_enough((nx, ny))
+                        ):
                             frontier.append((nx, ny))
                         if len(cluster) >= cluster_size:
                             break
