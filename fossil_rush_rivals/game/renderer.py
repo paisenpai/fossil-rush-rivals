@@ -678,33 +678,6 @@ def draw_dig_complete_screen(
     overlay.fill((10, 6, 4, 160))
     surface.blit(overlay, (0, 0))
 
-    # Central announcement panel
-    panel_w, panel_h = 620, 240
-    panel_x = (config.WINDOW_WIDTH - panel_w) // 2
-    panel_y = (config.WINDOW_HEIGHT - panel_h) // 2 - 40
-    panel_rect = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
-    _panel(surface, panel_rect)
-
-    # Gold accent top border stripe
-    stripe_rect = pygame.Rect(panel_rect.x + 6, panel_rect.y + 6, panel_rect.width - 12, 6)
-    pygame.draw.rect(surface, config.THEME_GOLD_ACCENT, stripe_rect)
-
-    if show_prompt:
-        # Pulsing "Press Enter" prompt
-        pulse = abs((pygame.time.get_ticks() % 1200) - 600) / 600
-        r = int(config.THEME_TEXT_GOLD[0] * (0.6 + 0.4 * pulse))
-        g = int(config.THEME_TEXT_GOLD[1] * (0.6 + 0.4 * pulse))
-        b = int(config.THEME_TEXT_GOLD[2] * (0.6 + 0.4 * pulse))
-        prompt = "Press Enter to head to the Laboratory"
-        prompt_w = font.size(prompt)[0]
-        draw_text(
-            surface,
-            prompt,
-            (panel_rect.centerx - prompt_w // 2, panel_rect.y + 120),
-            font,
-            (r, g, b),
-        )
-
 
 def draw_lab_focus_screen(
     surface: pygame.Surface,

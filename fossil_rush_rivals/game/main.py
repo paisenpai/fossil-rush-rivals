@@ -780,7 +780,14 @@ def main() -> None:
                 state.timeup_popup_started_at = now
             elapsed = now - state.timeup_popup_started_at
             duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
-            # Time's up popup box is removed per user request
+            if elapsed < duration:
+                popup_sprite = sprites.get_popup_sprite("countdown_timesup")
+                popup_alpha = _popup_alpha(
+                    elapsed,
+                    duration,
+                    config.POPUP_FADE_IN_MS,
+                    config.POPUP_FADE_OUT_MS,
+                )
         elif state.phase == config.PHASE_MARKET and state.market_substate == config.MARKET_SUB_INTRO:
             if state.market_popup_started_at == 0:
                 state.market_popup_started_at = now
