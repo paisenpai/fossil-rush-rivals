@@ -7,7 +7,7 @@ import numpy as np
 GRID_COLS = 20
 GRID_ROWS = 20
 SEED = 12345
-SAMPLES = 50000
+SAMPLES = 80000
 HOTSPOT_COUNT = 4
 HOTSPOT_SPREAD = 3.5
 RUSH_DAMAGE_CHANCE = 0.5
@@ -53,8 +53,11 @@ FEATURE_NAMES = [
     "state_hidden",
     "state_surveyed",
     "state_revealed",
+    "clue_detected",
     "claimed",
     "owned_by_actor",
+    "action_survey",
+    "action_careful",
     "action_rush",
     "action_claim",
     "revealed_neighbors",
@@ -158,28 +161,42 @@ def main() -> None:
         ai_profile = PLAYER_PROFILES[ai_profile_key]
 
         player_survey_coords, player_reveal_coords, _player_rush_rate, _player_claim_rate, player_spread = _build_activity_cloud(
-            rng,
-            hotspots,
-            player_profile,
+            rng, hotspots, player_profile,
         )
         ai_survey_coords, ai_reveal_coords, rush_rate, claim_rate, ai_spread = _build_activity_cloud(
-            rng,
-            hotspots,
-            ai_profile,
+            rng, hotspots, ai_profile,
         )
 
         all_survey_coords = player_survey_coords + ai_survey_coords
         all_reveal_coords = player_reveal_coords + ai_reveal_coords
 
-        state_hidden = float(rng.random() < 0.7)
-        state_surveyed = float(state_hidden == 0.0 and rng.random() < 0.5)
-        state_revealed = float(state_hidden == 0.0 and state_surveyed == 0.0)
+        # ------ Tile state ------
+        # Generate balanced tile states with enough surveyed-with-clue samples
+        state_roll = rng.random()
+        if state_roll < 0.40:
+            state_hidden = 1.0; state_surveyed = 0.0; state_revealed = 0.0
+        elif state_roll < 0.75:
+            state_hidden = 0.0; state_surveyed = 1.0; state_revealed = 0.0
+        else:
+            state_hidden = 0.0; state_surveyed = 0.0; state_revealed = 1.0
+
         claimed = float(rng.random() < 0.15)
         owned_by_actor = float(rng.random() < 0.25)
 
-        action_rush = float(rng.random() < rush_rate)
-        action_claim = float(rng.random() < claim_rate)
+        # ------ Action ------
+        # Generate all 4 actions with good coverage
+        action_roll = rng.random()
+        action_survey = 0.0; action_careful = 0.0; action_rush = 0.0; action_claim = 0.0
+        if action_roll < 0.30:
+            action_survey = 1.0
+        elif action_roll < 0.55:
+            action_careful = 1.0
+        elif action_roll < 0.75:
+            action_rush = 1.0
+        else:
+            action_claim = 1.0
 
+        # ------ Context features ------
         contest_pressure = 1.0 - min(
             _distance_norm(x, y, player_reveal_coords),
             _distance_norm(x, y, ai_reveal_coords),
@@ -207,18 +224,7 @@ def main() -> None:
         facing_flags = [0.0] * 8
         facing_flags[facing_index] = 1.0
 
-        claim_aggression_factor = 1.0 - dist_player
-
-        if player_profile_key == "rush" and ai_profile_key == "survey":
-            focus_bonus = player_pressure * 0.35 + contest_pressure * 0.30
-            aggression_bonus = action_rush * 0.35 + action_claim * 0.30 * claim_aggression_factor
-        elif player_profile_key == "survey" and ai_profile_key == "rush":
-            focus_bonus = ai_pressure * 0.35 + contest_pressure * 0.30
-            aggression_bonus = action_rush * 0.45 + action_claim * 0.35 * claim_aggression_factor
-        else:
-            focus_bonus = contest_pressure * 0.40 + player_pressure * 0.20 + survey_pressure * 0.15
-            aggression_bonus = action_rush * 0.40 + action_claim * 0.35 * claim_aggression_factor
-
+        # ------ Fossil simulation ------
         fossil_bias = (
             (1.0 - dist_hotspot) * 0.42
             + survey_pressure * 0.20
@@ -226,17 +232,22 @@ def main() -> None:
             + ai_pressure * 0.10
             + contest_pressure * 0.12
         )
-        fossil_hit = float(rng.random() < min(0.95, 0.10 + fossil_bias + focus_bonus * 0.25))
-        set_piece_hit = float(rng.random() < min(0.55, 0.07 + fossil_bias * 0.45 + contest_pressure * 0.10))
-        multi_tile_hit = float(rng.random() < min(0.75, 0.16 + fossil_bias * 0.35 + contest_pressure * 0.15))
+        fossil_hit = float(rng.random() < min(0.95, 0.10 + fossil_bias * 0.5))
+        set_piece_hit = float(rng.random() < min(0.55, 0.07 + fossil_bias * 0.45))
+        multi_tile_hit = float(rng.random() < min(0.75, 0.16 + fossil_bias * 0.35))
         decoy_hit = float(rng.random() < 0.06)
+
+        # ------ Clue detection ------
+        clue_detected = 0.0
+        if state_surveyed == 1.0:
+            if fossil_hit or decoy_hit:
+                clue_detected = 1.0
 
         dig_required = 1.0
         dig_progress = 0.0
-        if state_surveyed == 1.0:
-            if fossil_hit or decoy_hit:
-                dig_required = 3.0 if multi_tile_hit else 2.0
-                dig_progress = 1.0
+        if state_surveyed == 1.0 and clue_detected == 1.0:
+            dig_required = 3.0 if multi_tile_hit else 2.0
+            dig_progress = dig_required
         elif state_revealed == 1.0:
             if fossil_hit or decoy_hit:
                 dig_required = 3.0 if multi_tile_hit else 2.0
@@ -255,8 +266,11 @@ def main() -> None:
                 state_hidden,
                 state_surveyed,
                 state_revealed,
+                clue_detected,
                 claimed,
                 owned_by_actor,
+                action_survey,
+                action_careful,
                 action_rush,
                 action_claim,
                 revealed_neighbors,
@@ -276,21 +290,85 @@ def main() -> None:
         )
         features[idx] = feature_row
 
-        base_score = (
-            (1.0 - dist_survey) * 0.30
-            + surveyed_neighbors * 0.20
-            + revealed_neighbors * 0.18
-            + focus_bonus
-        )
-        reward_bonus = fossil_hit * 0.45 + set_piece_hit * 0.65 + multi_tile_hit * 0.4
-        rush_penalty = 0.0
-        if action_rush and fossil_hit:
-            if rng.random() < RUSH_BREAK_CHANCE:
-                rush_penalty = 0.45
-            elif rng.random() < RUSH_DAMAGE_CHANCE:
-                rush_penalty = 0.18
-        score = min(1.0, base_score + aggression_bonus + reward_bonus - rush_penalty)
+        # ============================================================
+        # SCORING LOGIC — teaches the AI the correct game strategy
+        # ============================================================
+        #
+        # The AI should learn this priority:
+        #   1. Dig tiles that have clues (surveyed + clue_detected) -> HIGHEST
+        #   2. Survey hidden tiles to discover clues             -> HIGH
+        #   3. Claim zones near clues when player is close       -> MEDIUM-HIGH
+        #   4. Everything else (blind dig, re-survey, etc.)      -> LOW/ZERO
 
+        score = 0.0
+
+        if action_survey == 1.0:
+            if state_hidden == 1.0:
+                # GOOD: surveying unexplored tiles is the right first step
+                score = 0.55 + (1.0 - dist_hotspot) * 0.20 + survey_pressure * 0.10
+            elif state_surveyed == 1.0:
+                # BAD: re-surveying already surveyed tiles is wasteful
+                score = 0.05
+            else:
+                # state_revealed - surveying already dug tiles is pointless
+                score = 0.02
+
+        elif action_careful == 1.0:
+            if state_surveyed == 1.0 and clue_detected == 1.0:
+                if time_left < 0.3:
+                    # Time is running out! Careful dig is too slow, rush it instead!
+                    score = 0.40
+                elif dist_player < 0.2 and claimed == 0.0:
+                    # Player is too close, better to claim first!
+                    score = 0.60
+                else:
+                    # BEST: standard high quality dig
+                    score = 0.90 + set_piece_hit * 0.05 + multi_tile_hit * 0.05
+            elif state_surveyed == 1.0 and clue_detected == 0.0:
+                score = 0.03
+            elif state_hidden == 1.0:
+                score = 0.05
+            else:
+                score = 0.02
+
+        elif action_rush == 1.0:
+            if state_surveyed == 1.0 and clue_detected == 1.0:
+                # If time is running out OR player is extremely close, rush is highly favored!
+                if time_left < 0.3:
+                    score = 0.95
+                elif dist_player < 0.2:
+                    score = 0.93
+                else:
+                    # Standard rush dig (risky but okay)
+                    rush_penalty = 0.0
+                    if fossil_hit:
+                        if rng.random() < RUSH_BREAK_CHANCE:
+                            rush_penalty = 0.30
+                        elif rng.random() < RUSH_DAMAGE_CHANCE:
+                            rush_penalty = 0.15
+                    score = 0.80 + multi_tile_hit * 0.05 - rush_penalty
+            elif state_surveyed == 1.0 and clue_detected == 0.0:
+                score = 0.03
+            elif state_hidden == 1.0:
+                score = 0.04
+            else:
+                score = 0.02
+
+        elif action_claim == 1.0:
+            if state_surveyed == 1.0 and clue_detected == 1.0:
+                # If player is close and tile is not claimed, we MUST claim to protect it!
+                if dist_player < 0.2 and claimed == 0.0:
+                    score = 0.98
+                else:
+                    player_closeness = 1.0 - dist_player
+                    score = 0.40 + player_closeness * 0.40 + set_piece_hit * 0.10
+            elif state_hidden == 1.0:
+                player_closeness = 1.0 - dist_player
+                score = 0.15 + player_closeness * 0.25
+            else:
+                score = 0.10
+
+        score = max(0.0, min(1.0, score))
         values[idx] = score
         if score < 0.33:
             labels[idx] = 0
@@ -312,7 +390,7 @@ def main() -> None:
         "samples": SAMPLES,
         "feature_count": features.shape[1],
         "feature_names": FEATURE_NAMES,
-        "notes": "Synthetic dataset with simulated player-versus-rival excavation scenarios, large fossil dig requirements, rush damage risk, and reward shaping.",
+        "notes": "Synthetic dataset with strategy-aware scoring: survey hidden > dig clues > claim defensively. Blind digging heavily penalized.",
         "scenarios": [scenario["name"] for scenario in SCENARIOS],
     }
     (data_dir / "training_report.json").write_text(json.dumps(report, indent=2))

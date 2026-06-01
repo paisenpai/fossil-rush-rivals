@@ -1,0 +1,291 @@
+pygame-ce 2.4.1 (SDL 2.28.5, Python 3.12.13)
+Warning: Item sprite file assets/sprites/items/surveyed_dirt.png not found.
+Warning: Item sprite file assets/sprites/items/surveyed_partial.png not found.
+Debug: Facial expressions sheet assets/characters_facial_expression.png not found.
+Grid State: 378 hidden, 0 surveyed (0 clues), 0 revealed
+AI Top Choices:
+  #1: survey @ (11,16) | Score: 0.519 [KM:0.18 EM:0.18 Tree:0.80 NN:0.45]
+  #2: survey @ (11,15) | Score: 0.509 [KM:0.18 EM:0.18 Tree:0.80 NN:0.45]
+  #3: survey @ (10,16) | Score: 0.509 [KM:0.18 EM:0.18 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 373 hidden, 5 surveyed (1 clues), 0 revealed
+AI Top Choices:
+  #1: careful_dig @ (11,15) | Score: 0.568 [KM:0.18 EM:0.16 Tree:0.94 NN:0.43] (CLUE!)
+  #2: survey @ (10,15) | Score: 0.513 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (12,15) | Score: 0.512 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Debug: discovered TS Triceratops Skull at 12,16 owned by Rival AI (claim).
+Grid State: 373 hidden, 4 surveyed (0 clues), 1 revealed
+AI Top Choices:
+  #1: survey @ (10,15) | Score: 0.525 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (12,15) | Score: 0.525 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #3: survey @ (11,14) | Score: 0.523 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 371 hidden, 6 surveyed (2 clues), 1 revealed
+AI Top Choices:
+  #1: careful_dig @ (10,15) | Score: 0.570 [KM:0.19 EM:0.16 Tree:0.94 NN:0.43] (CLUE!)
+  #2: rush_dig @ (10,14) | Score: 0.565 [KM:0.18 EM:0.16 Tree:0.93 NN:0.44] (CLUE!)
+  #3: claim_zone @ (10,15) | Score: 0.524 [KM:0.19 EM:0.16 Tree:0.82 NN:0.45] (CLUE!)
+--------------------------------------------------
+Debug: discovered TS Triceratops Skull at 11,16 owned by Rival AI.
+Grid State: 371 hidden, 5 surveyed (1 clues), 2 revealed
+AI Top Choices:
+  #1: careful_dig @ (10,14) | Score: 0.569 [KM:0.18 EM:0.16 Tree:0.94 NN:0.44] (CLUE!)
+  #2: survey @ (11,14) | Score: 0.517 [KM:0.24 EM:0.23 Tree:0.80 NN:0.46]
+  #3: survey @ (12,15) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 371 hidden, 5 surveyed (1 clues), 2 revealed
+AI Top Choices:
+  #1: rush_dig @ (10,14) | Score: 0.566 [KM:0.18 EM:0.16 Tree:0.93 NN:0.45] (CLUE!)
+  #2: survey @ (11,14) | Score: 0.528 [KM:0.24 EM:0.23 Tree:0.80 NN:0.46]
+  #3: claim_zone @ (10,14) | Score: 0.525 [KM:0.18 EM:0.16 Tree:0.82 NN:0.46] (CLUE!)
+--------------------------------------------------
+Debug: discovered TS Triceratops Skull at 11,15 owned by Rival AI.
+Grid State: 368 hidden, 7 surveyed (1 clues), 3 revealed
+AI Top Choices:
+  #1: rush_dig @ (11,14) | Score: 0.569 [KM:0.19 EM:0.16 Tree:0.93 NN:0.45] (CLUE!)
+  #2: claim_zone @ (11,14) | Score: 0.517 [KM:0.19 EM:0.17 Tree:0.82 NN:0.46] (CLUE!)
+  #3: survey @ (12,14) | Score: 0.516 [KM:0.24 EM:0.23 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Debug: discovered TS Triceratops Skull at 12,15 owned by Rival AI.
+Grid State: 365 hidden, 9 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (11,12) | Score: 0.512 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (13,14) | Score: 0.512 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (9,13) | Score: 0.502 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 361 hidden, 13 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (10,11) | Score: 0.516 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (9,12) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (11,10) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 359 hidden, 15 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (9,12) | Score: 0.516 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (11,10) | Score: 0.516 [KM:0.24 EM:0.23 Tree:0.80 NN:0.45]
+  #3: survey @ (9,10) | Score: 0.516 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 359 hidden, 15 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (9,12) | Score: 0.541 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+  #2: survey @ (9,13) | Score: 0.533 [KM:0.25 EM:0.24 Tree:0.80 NN:0.47]
+  #3: survey @ (9,10) | Score: 0.520 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+--------------------------------------------------
+Grid State: 357 hidden, 17 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (8,13) | Score: 0.516 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (9,10) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #3: survey @ (7,12) | Score: 0.513 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 357 hidden, 17 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (8,13) | Score: 0.540 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+  #2: survey @ (8,14) | Score: 0.528 [KM:0.23 EM:0.22 Tree:0.80 NN:0.47]
+  #3: survey @ (7,13) | Score: 0.527 [KM:0.22 EM:0.22 Tree:0.80 NN:0.47]
+--------------------------------------------------
+Grid State: 354 hidden, 20 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (7,14) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (7,12) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #3: survey @ (6,13) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 354 hidden, 20 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (7,14) | Score: 0.540 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+  #2: survey @ (6,14) | Score: 0.528 [KM:0.23 EM:0.22 Tree:0.80 NN:0.47]
+  #3: survey @ (7,15) | Score: 0.528 [KM:0.23 EM:0.22 Tree:0.80 NN:0.47]
+--------------------------------------------------
+Grid State: 351 hidden, 23 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (6,13) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (8,15) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #3: survey @ (6,15) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 348 hidden, 26 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (7,12) | Score: 0.516 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (5,12) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #3: survey @ (6,15) | Score: 0.515 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 348 hidden, 26 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (7,12) | Score: 0.534 [KM:0.24 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (5,12) | Score: 0.514 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #3: survey @ (6,11) | Score: 0.512 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 347 hidden, 27 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (5,12) | Score: 0.513 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (6,11) | Score: 0.513 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (7,10) | Score: 0.511 [KM:0.22 EM:0.22 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 344 hidden, 30 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (6,11) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (5,14) | Score: 0.515 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (4,11) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 344 hidden, 30 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (6,11) | Score: 0.535 [KM:0.24 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (6,10) | Score: 0.523 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (4,11) | Score: 0.513 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 342 hidden, 32 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (5,10) | Score: 0.514 [KM:0.24 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (7,10) | Score: 0.514 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #3: survey @ (4,11) | Score: 0.514 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 339 hidden, 35 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (4,9) | Score: 0.521 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+  #2: survey @ (4,11) | Score: 0.521 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+  #3: survey @ (7,10) | Score: 0.521 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+--------------------------------------------------
+Grid State: 339 hidden, 35 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (4,9) | Score: 0.541 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+  #2: survey @ (3,9) | Score: 0.528 [KM:0.23 EM:0.22 Tree:0.80 NN:0.47]
+  #3: survey @ (4,11) | Score: 0.520 [KM:0.24 EM:0.23 Tree:0.80 NN:0.47]
+--------------------------------------------------
+Grid State: 337 hidden, 37 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (4,11) | Score: 0.515 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #2: survey @ (3,10) | Score: 0.515 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (3,8) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 337 hidden, 37 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (4,11) | Score: 0.534 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #2: survey @ (3,11) | Score: 0.524 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (4,13) | Score: 0.515 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 335 hidden, 39 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (3,10) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (3,12) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (4,13) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 333 hidden, 41 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (3,12) | Score: 0.515 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #2: survey @ (2,9) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (2,11) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 333 hidden, 41 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (3,12) | Score: 0.534 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+  #2: survey @ (3,13) | Score: 0.522 [KM:0.22 EM:0.21 Tree:0.80 NN:0.46]
+  #3: survey @ (2,12) | Score: 0.522 [KM:0.22 EM:0.21 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 330 hidden, 44 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (4,13) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #2: survey @ (2,13) | Score: 0.513 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (2,11) | Score: 0.513 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 330 hidden, 44 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (4,13) | Score: 0.539 [KM:0.23 EM:0.23 Tree:0.80 NN:0.47]
+  #2: survey @ (4,14) | Score: 0.528 [KM:0.23 EM:0.22 Tree:0.80 NN:0.47]
+  #3: survey @ (5,14) | Score: 0.519 [KM:0.23 EM:0.23 Tree:0.80 NN:0.47]
+--------------------------------------------------
+Grid State: 328 hidden, 46 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (5,14) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #2: survey @ (3,14) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (2,13) | Score: 0.513 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 328 hidden, 46 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (5,14) | Score: 0.535 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (5,15) | Score: 0.524 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (6,15) | Score: 0.515 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 326 hidden, 48 surveyed (0 clues), 4 revealed
+AI Top Choices:
+  #1: survey @ (6,15) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #2: survey @ (4,15) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (3,14) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 324 hidden, 50 surveyed (1 clues), 4 revealed
+AI Top Choices:
+  #1: rush_dig @ (6,15) | Score: 0.564 [KM:0.18 EM:0.15 Tree:0.93 NN:0.45] (CLUE!)
+  #2: claim_zone @ (6,15) | Score: 0.522 [KM:0.18 EM:0.16 Tree:0.82 NN:0.45] (CLUE!)
+  #3: survey @ (8,15) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Debug: discovered SBF Small Bone Fragment at 7,16 owned by Rival AI (claim).
+Grid State: 323 hidden, 50 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (7,16) | Score: 0.516 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (8,15) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #3: survey @ (4,15) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 320 hidden, 53 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (8,15) | Score: 0.514 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (8,17) | Score: 0.514 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+  #3: survey @ (6,17) | Score: 0.513 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 320 hidden, 53 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (8,15) | Score: 0.534 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (8,17) | Score: 0.513 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (9,17) | Score: 0.502 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 319 hidden, 54 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (8,17) | Score: 0.512 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #2: survey @ (9,17) | Score: 0.501 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (8,18) | Score: 0.500 [KM:0.22 EM:0.21 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 316 hidden, 57 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (10,17) | Score: 0.513 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #2: survey @ (6,17) | Score: 0.512 [KM:0.22 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (9,18) | Score: 0.512 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 316 hidden, 57 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (10,17) | Score: 0.532 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #2: survey @ (10,18) | Score: 0.520 [KM:0.22 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (12,17) | Score: 0.511 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 314 hidden, 59 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (12,17) | Score: 0.511 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #2: survey @ (11,18) | Score: 0.511 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (9,18) | Score: 0.511 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 314 hidden, 59 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (12,17) | Score: 0.531 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #2: survey @ (13,17) | Score: 0.519 [KM:0.22 EM:0.21 Tree:0.80 NN:0.45]
+  #3: survey @ (12,18) | Score: 0.519 [KM:0.22 EM:0.21 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 311 hidden, 62 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (13,16) | Score: 0.511 [KM:0.23 EM:0.22 Tree:0.80 NN:0.45]
+  #2: survey @ (13,18) | Score: 0.510 [KM:0.22 EM:0.22 Tree:0.80 NN:0.45]
+  #3: survey @ (11,18) | Score: 0.510 [KM:0.22 EM:0.22 Tree:0.80 NN:0.45]
+--------------------------------------------------
+Grid State: 308 hidden, 65 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (13,14) | Score: 0.517 [KM:0.24 EM:0.23 Tree:0.80 NN:0.46]
+  #2: survey @ (14,15) | Score: 0.516 [KM:0.23 EM:0.23 Tree:0.80 NN:0.46]
+  #3: survey @ (14,17) | Score: 0.515 [KM:0.23 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 308 hidden, 65 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (13,14) | Score: 0.536 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (13,13) | Score: 0.526 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #3: survey @ (14,14) | Score: 0.523 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------
+Grid State: 305 hidden, 68 surveyed (0 clues), 5 revealed
+AI Top Choices:
+  #1: survey @ (14,13) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #2: survey @ (14,15) | Score: 0.515 [KM:0.23 EM:0.23 Tree:0.80 NN:0.45]
+  #3: survey @ (15,14) | Score: 0.513 [KM:0.22 EM:0.22 Tree:0.80 NN:0.46]
+--------------------------------------------------

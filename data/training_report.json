@@ -1,15 +1,18 @@
 {
   "seed": 12345,
-  "samples": 50000,
-  "feature_count": 28,
+  "samples": 80000,
+  "feature_count": 31,
   "feature_names": [
     "x_norm",
     "y_norm",
     "state_hidden",
     "state_surveyed",
     "state_revealed",
+    "clue_detected",
     "claimed",
     "owned_by_actor",
+    "action_survey",
+    "action_careful",
     "action_rush",
     "action_claim",
     "revealed_neighbors",
@@ -32,7 +35,7 @@
     "facing_w",
     "facing_nw"
   ],
-  "notes": "Synthetic dataset with simulated player-versus-rival excavation scenarios, large fossil dig requirements, rush damage risk, and reward shaping.",
+  "notes": "Synthetic dataset with strategy-aware scoring: survey hidden > dig clues > claim defensively. Blind digging heavily penalized.",
   "scenarios": [
     "survey_vs_survey",
     "survey_vs_balanced",

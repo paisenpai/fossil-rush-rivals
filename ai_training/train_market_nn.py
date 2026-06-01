@@ -9,27 +9,35 @@ def sigmoid_deriv(x):
     s = sigmoid(x)
     return s * (1 - s)
 
-def manual_mlp(X, y, hidden_sizes=(8, 4), epochs=200, lr=0.05, seed=12345):
+def manual_mlp(X, y, hidden_sizes=(16, 8), epochs=500, lr=0.01, seed=12345):
     rng = np.random.default_rng(seed)
     n_samples, n_features = X.shape
     y = y.reshape(-1, 1)
 
     layer_sizes = [n_features, hidden_sizes[0], hidden_sizes[1], 1]
-    weights = [rng.standard_normal((layer_sizes[i], layer_sizes[i+1])) * 0.1 for i in range(len(layer_sizes)-1)]
+    # Xavier initialization for better convergence
+    weights = [
+        rng.standard_normal((layer_sizes[i], layer_sizes[i+1])) * np.sqrt(2.0 / layer_sizes[i])
+        for i in range(len(layer_sizes)-1)
+    ]
     biases = [np.zeros((1, layer_sizes[i+1])) for i in range(len(layer_sizes)-1)]
     
-    for _ in range(epochs):
+    for epoch in range(epochs):
         # Forward
         activations = [X]
         zs = []
         for i in range(len(weights)):
             z = np.dot(activations[-1], weights[i]) + biases[i]
             zs.append(z)
-            a = sigmoid(z) if i < len(weights) - 1 else z # Linear output layer
+            if i < len(weights) - 1:
+                a = sigmoid(z)
+            else:
+                a = sigmoid(z)  # Sigmoid output to keep predictions in [0, 1]
             activations.append(a)
             
-        # Backward
-        delta = (activations[-1] - y) / n_samples
+        # Backward (MSE loss)
+        delta = (activations[-1] - y) * activations[-1] * (1 - activations[-1])
+        delta /= n_samples
         
         for i in reversed(range(len(weights))):
             dW = np.dot(activations[i].T, delta)
@@ -52,8 +60,8 @@ def main() -> None:
     features = data["features"]
     labels = data.get("values", data["labels"]).astype(float)
 
-    # Manual MLP Backprop
-    weights, biases = manual_mlp(features, labels)
+    # Manual MLP Backprop with bigger network and more training
+    weights, biases = manual_mlp(features, labels, hidden_sizes=(16, 8), epochs=500, lr=0.01)
 
     payload = {
         "layers": [w.tolist() for w in weights],

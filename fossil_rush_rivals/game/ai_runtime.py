@@ -63,6 +63,8 @@ def load_runtime_models(data_dir: Optional[Path] = None) -> RuntimeModels:
         decision_tree=DecisionTreeModel(
             rules=rules_payload.get("decision_tree", {}).get("rules", []),
             feature_importances=rules_payload.get("decision_tree", {}).get("feature_importances", {}),
+            tree=rules_payload.get("decision_tree", {}).get("tree", None),
+            feature_names=rules_payload.get("decision_tree", {}).get("feature_names", None),
         ),
         em=EmModel(means=rules_payload.get("em", {}).get("means", [])),
         adaboost=AdaBoostModel(weights=rules_payload.get("adaboost", {}).get("weights", [])),
@@ -148,8 +150,11 @@ def _tile_feature_vector(
     state_hidden = 1.0 if tile.state == "hidden" else 0.0
     state_surveyed = 1.0 if tile.state == "surveyed" else 0.0
     state_revealed = 1.0 if tile.state == "revealed" else 0.0
+    clue_detected = 1.0 if tile.state == "surveyed" and tile.survey_result == "detected" else 0.0
     claimed = 1.0 if tile.claimed_by else 0.0
     owned_by_actor = 1.0 if tile.owner == actor else 0.0
+    action_survey = 1.0 if action == config.ACTION_SURVEY else 0.0
+    action_careful = 1.0 if action == config.ACTION_CAREFUL else 0.0
     action_rush = 1.0 if action == config.ACTION_RUSH else 0.0
     action_claim = 1.0 if action == config.ACTION_CLAIM else 0.0
     time_left_norm = 0.0
@@ -180,8 +185,11 @@ def _tile_feature_vector(
         state_hidden,
         state_surveyed,
         state_revealed,
+        clue_detected,
         claimed,
         owned_by_actor,
+        action_survey,
+        action_careful,
         action_rush,
         action_claim,
         revealed_neighbors / 8.0,
@@ -243,8 +251,11 @@ def _tile_feature_dict(
         "state_hidden": 1.0 if tile.state == "hidden" else 0.0,
         "state_surveyed": 1.0 if tile.state == "surveyed" else 0.0,
         "state_revealed": 1.0 if tile.state == "revealed" else 0.0,
+        "clue_detected": 1.0 if tile.state == "surveyed" and tile.survey_result == "detected" else 0.0,
         "claimed": 1.0 if tile.claimed_by else 0.0,
         "owned_by_actor": 1.0 if tile.owner == actor else 0.0,
+        "action_survey": 1.0 if action == config.ACTION_SURVEY else 0.0,
+        "action_careful": 1.0 if action == config.ACTION_CAREFUL else 0.0,
         "action_rush": 1.0 if action == config.ACTION_RUSH else 0.0,
         "action_claim": 1.0 if action == config.ACTION_CLAIM else 0.0,
         "revealed_neighbors": revealed_neighbors / 8.0,
@@ -354,44 +365,51 @@ def choose_action(
             tree_score = models.decision_tree.score(feature_dict)
             market_score = models.backprop.predict_value(vector)
             
-            # Distance penalty so AI prefers closer tiles!
+            # Distance penalty so AI prefers closer tiles
             dist_to_ai = abs(tile.x - actor_pos[0]) + abs(tile.y - actor_pos[1]) if actor_pos else 0
-            distance_penalty = dist_to_ai * 0.03
+            # No distance penalty for digging confirmed clue tiles — always worth the trip
+            is_clue_dig = (
+                action in (config.ACTION_CAREFUL, config.ACTION_RUSH)
+                and tile.state == "surveyed"
+                and tile.survey_result == "detected"
+            )
+            distance_penalty = 0.0 if is_clue_dig else dist_to_ai * 0.01
             
-            combined = kmeans_score + em_score + tree_score + market_score
-
-            aggression_bonus = 0.0
-            if action == config.ACTION_RUSH:
-                aggression_bonus += (1.0 - feature_dict["dist_survey"]) * 0.3
-                aggression_bonus += (1.0 - feature_dict["dist_player_reveal"]) * 0.2
-                aggression_bonus += feature_dict["surveyed_neighbors"] * 0.15
-                if feature_dict["ai_revealed"] > 0:
-                    aggression_bonus += 0.8
-            elif action == config.ACTION_CLAIM:
-                aggression_bonus += (1.0 - feature_dict["dist_survey"]) * 0.25
-                aggression_bonus += (1.0 - feature_dict["dist_player_reveal"]) * 0.2
-                aggression_bonus += feature_dict["surveyed_neighbors"] * 0.1
-                if feature_dict["ai_revealed"] > 0:
-                    aggression_bonus += 0.6
-            elif action == config.ACTION_CAREFUL:
-                aggression_bonus += (1.0 - feature_dict["dist_survey"]) * 0.1
-                if feature_dict["ai_revealed"] > 0:
-                    aggression_bonus += 0.7
-            combined += aggression_bonus - distance_penalty
+            # Weighted ensemble: Tree and NN learned the strategy,
+            # KMeans/EM provide spatial awareness only
+            combined = (
+                kmeans_score * 0.15
+                + em_score * 0.15
+                + tree_score * 0.40
+                + market_score * 0.30
+            )
+            combined -= distance_penalty
+            
+            # Allow Adaboost to shift it slightly
             adjusted = models.adaboost.adjust_score(combined)
-            scored.append((adjusted, action, tile))
+            scored.append((adjusted, action, tile, kmeans_score, em_score, tree_score, market_score, feature_dict))
+
+    if not scored:
+        return None
 
     scored.sort(key=lambda item: (-item[0], item[1], item[2].y, item[2].x))
-    best_score, best_action, best_tile = scored[0]
+    
     if config.AI_DEBUG_LOG:
-        print(
-            "AI debug: action={action} tile=({x},{y}) score={score:.3f}".format(
-                action=best_action,
-                x=best_tile.x,
-                y=best_tile.y,
-                score=best_score,
-            )
-        )
+        n_hidden = sum(1 for row in grid.tiles for t in row if t.state == "hidden" and not t.obstacle)
+        n_surveyed = sum(1 for row in grid.tiles for t in row if t.state == "surveyed")
+        n_clue = sum(1 for row in grid.tiles for t in row if t.state == "surveyed" and t.survey_result == "detected")
+        n_revealed = sum(1 for row in grid.tiles for t in row if t.state == "revealed")
+        print(f"Grid State: {n_hidden} hidden, {n_surveyed} surveyed ({n_clue} clues), {n_revealed} revealed")
+        
+        # Show top 3 choices compactly
+        print("AI Top Choices:")
+        for i in range(min(3, len(scored))):
+            s_adj, s_act, s_tile, s_km, s_em, s_tr, s_mk, s_feat = scored[i]
+            clue_str = " (CLUE!)" if s_feat.get("clue_detected") == 1.0 else ""
+            print(f"  #{i+1}: {s_act} @ ({s_tile.x},{s_tile.y}) | Score: {s_adj:.3f} [KM:{s_km:.2f} EM:{s_em:.2f} Tree:{s_tr:.2f} NN:{s_mk:.2f}]{clue_str}")
+        print("-" * 50)
+    
+    best_score, best_action, best_tile, _km, _em, _tr, _mk, _feat = scored[0]
     if best_score == 0.0:
         action, tiles = rng.choice(valid_actions)
         tile = rng.choice(tiles)
