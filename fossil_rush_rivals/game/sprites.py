@@ -13,6 +13,7 @@ EMOTION_SPRITES: Dict[str, Dict[str, pygame.Surface]] = {}
 BACKGROUND_SPRITES: Dict[str, pygame.Surface] = {}
 BACKGROUND_SPRITE: Optional[pygame.Surface] = None
 TITLE_IMAGE_SPRITE: Optional[pygame.Surface] = None
+POPUP_SPRITES: Dict[str, pygame.Surface] = {}
 
 _loaded = False
 
@@ -283,6 +284,29 @@ def load_sprites() -> None:
     elif config.AI_DEBUG_LOG:
         print(f"Debug: Facial expressions sheet {faces_path} not found.")
 
+    # Load popups
+    popups_dir = os.path.join(base_dir, "popups")
+    popup_files = [
+        "countdown_1",
+        "countdown_2",
+        "countdown_3",
+        "countdown_go",
+        "countdown_timesup",
+        "popup_collector_craze",
+        "popup_fraud_panic",
+        "popup_museum_night",
+        "popup_research_grant",
+    ]
+    for popup_key in popup_files:
+        path = os.path.join(popups_dir, f"{popup_key}.png")
+        if os.path.exists(path):
+            try:
+                POPUP_SPRITES[popup_key] = pygame.image.load(path).convert_alpha()
+            except Exception as e:
+                print(f"Warning: Failed to load popup {path}: {e}")
+        else:
+            print(f"Warning: Popup sprite file {path} not found.")
+
     _loaded = True
 
 
@@ -336,3 +360,9 @@ def get_title_image_sprite() -> Optional[pygame.Surface]:
         except Exception as e:
             print(f"Warning: Failed to load title image {path}: {e}")
     return TITLE_IMAGE_SPRITE
+
+
+def get_popup_sprite(key: str) -> Optional[pygame.Surface]:
+    """Retrieves a popup sprite surface or None if not loaded."""
+    load_sprites()
+    return POPUP_SPRITES.get(key, None)

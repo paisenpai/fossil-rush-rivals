@@ -70,6 +70,12 @@ class GameState:
     journal_show_individuals: bool
     bg_key: str
     is_paused: bool
+    excavation_countdown_started_at: int
+    excavation_countdown_done: bool
+    market_popup_started_at: int
+    timeup_popup_started_at: int
+    last_player_emotion: str
+    market_final_sfx_played: bool
 
 
 def create_game_state(start_in_title: bool = True) -> GameState:
@@ -144,5 +150,11 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         journal_show_individuals=True,
         bg_key="homescreen" if start_in_title else "playing_day",
         is_paused=False,
+        excavation_countdown_started_at=0,
+        excavation_countdown_done=False,
+        market_popup_started_at=0,
+        timeup_popup_started_at=0,
+        last_player_emotion="Focused",
+        market_final_sfx_played=False,
     )
 

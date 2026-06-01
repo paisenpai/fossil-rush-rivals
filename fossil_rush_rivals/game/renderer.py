@@ -25,6 +25,15 @@ def draw_text(
     surface.blit(rendered, pos)
 
 
+def draw_popup(surface: pygame.Surface, sprite: pygame.Surface, alpha: int) -> None:
+    if alpha <= 0:
+        return
+    popup = sprite.copy()
+    popup.set_alpha(alpha)
+    popup_rect = popup.get_rect(center=(config.WINDOW_WIDTH // 2, config.WINDOW_HEIGHT // 2))
+    surface.blit(popup, popup_rect)
+
+
 def _panel(surface: pygame.Surface, rect: pygame.Rect) -> None:
     # 1. Background Slate Fill
     pygame.draw.rect(surface, config.THEME_STONE_MED, rect)
@@ -661,8 +670,9 @@ def _truncate_text(text: str, font: pygame.font.Font, max_width: int) -> str:
 def draw_dig_complete_screen(
     surface: pygame.Surface,
     font: pygame.font.Font,
+    show_prompt: bool,
 ) -> None:
-    """Announcement screen shown when all excavation actions are spent."""
+    """Announcement screen shown when excavation time runs out."""
     # Dim full-screen overlay for drama
     overlay = pygame.Surface((config.WINDOW_WIDTH, config.WINDOW_HEIGHT), pygame.SRCALPHA)
     overlay.fill((10, 6, 4, 160))
@@ -679,46 +689,21 @@ def draw_dig_complete_screen(
     stripe_rect = pygame.Rect(panel_rect.x + 6, panel_rect.y + 6, panel_rect.width - 12, 6)
     pygame.draw.rect(surface, config.THEME_GOLD_ACCENT, stripe_rect)
 
-    # Main headline
-    headline = "The Dig Site Has Closed!"
-    headline_w = font.size(headline)[0]
-    draw_text(
-        surface,
-        headline,
-        (panel_rect.centerx - headline_w // 2, panel_rect.y + 30),
-        font,
-        config.THEME_TEXT_GOLD,
-    )
-
-    # Divider line
-    div_y = panel_rect.y + 74
-    pygame.draw.line(
-        surface,
-        config.THEME_GOLD_SHADOW,
-        (panel_rect.x + 30, div_y),
-        (panel_rect.right - 30, div_y),
-        1,
-    )
-
-    # Subtitle
-    sub = "Time is up at the dig site."
-    sub_w = font.size(sub)[0]
-    draw_text(surface, sub, (panel_rect.centerx - sub_w // 2, panel_rect.y + 88), font)
-
-    # Pulsing "Press Enter" prompt
-    pulse = abs((pygame.time.get_ticks() % 1200) - 600) / 600
-    r = int(config.THEME_TEXT_GOLD[0] * (0.6 + 0.4 * pulse))
-    g = int(config.THEME_TEXT_GOLD[1] * (0.6 + 0.4 * pulse))
-    b = int(config.THEME_TEXT_GOLD[2] * (0.6 + 0.4 * pulse))
-    prompt = "Press Enter to head to the Laboratory"
-    prompt_w = font.size(prompt)[0]
-    draw_text(
-        surface,
-        prompt,
-        (panel_rect.centerx - prompt_w // 2, panel_rect.y + 180),
-        font,
-        (r, g, b),
-    )
+    if show_prompt:
+        # Pulsing "Press Enter" prompt
+        pulse = abs((pygame.time.get_ticks() % 1200) - 600) / 600
+        r = int(config.THEME_TEXT_GOLD[0] * (0.6 + 0.4 * pulse))
+        g = int(config.THEME_TEXT_GOLD[1] * (0.6 + 0.4 * pulse))
+        b = int(config.THEME_TEXT_GOLD[2] * (0.6 + 0.4 * pulse))
+        prompt = "Press Enter to head to the Laboratory"
+        prompt_w = font.size(prompt)[0]
+        draw_text(
+            surface,
+            prompt,
+            (panel_rect.centerx - prompt_w // 2, panel_rect.y + 120),
+            font,
+            (r, g, b),
+        )
 
 
 def draw_lab_focus_screen(

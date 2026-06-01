@@ -30,6 +30,7 @@ from .renderer import (
     draw_characters,
     draw_title_screen,
     draw_pause_menu,
+    draw_popup,
 )
 from .ui import build_fonts
 from . import sprites
@@ -37,6 +38,7 @@ from . import sprites
 
 def main() -> None:
     pygame.init()
+    pygame.mixer.init()
     screen = pygame.display.set_mode((config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
     pygame.display.set_caption(config.TITLE_TEXT)
     clock = pygame.time.Clock()
@@ -64,6 +66,50 @@ def main() -> None:
     pause_resume_btn = None
     pause_retry_btn = None
     pause_quit_btn = None
+
+    sfx: dict[str, pygame.mixer.Sound] = {}
+
+    def _load_sfx() -> None:
+        base_dir = "assets/sfx"
+        sound_keys = [
+            "anxious",
+            "applause",
+            "crowd_gavel",
+            "defeated",
+            "dig",
+            "elated",
+            "focused",
+            "fossil_common",
+            "fossil_rare",
+            "invalid",
+            "youlose",
+        ]
+        for key in sound_keys:
+            path = f"{base_dir}/{key}.ogg"
+            try:
+                sfx[key] = pygame.mixer.Sound(path)
+            except Exception:
+                if config.AI_DEBUG_LOG:
+                    print(f"Debug: Missing sound {path}.")
+
+    def _play_sfx(key: str) -> None:
+        sound = sfx.get(key)
+        if sound:
+            sound.play()
+
+    def _popup_alpha(elapsed: int, duration: int, fade_in: int, fade_out: int) -> int:
+        if elapsed < 0 or elapsed >= duration:
+            return 0
+        if fade_in > 0 and elapsed < fade_in:
+            return int(255 * (elapsed / fade_in))
+        if fade_out > 0 and elapsed > duration - fade_out:
+            return int(255 * ((duration - elapsed) / fade_out))
+        return 255
+
+    def _trend_popup_key(trend: str) -> str:
+        return "popup_" + trend.lower().replace(" ", "_")
+
+    _load_sfx()
 
     def _direction_from_delta(dx: int, dy: int) -> str:
         mapping = {
@@ -110,7 +156,7 @@ def main() -> None:
             elif event.type == pygame.MOUSEMOTION:
                 if state.is_paused:
                     continue
-                if state.phase == config.PHASE_EXCAVATION:
+                if state.phase == config.PHASE_EXCAVATION and state.excavation_countdown_done:
                     tile = state.grid.tile_at_pixel(event.pos)
                     state.hover_tile = tile
                     if tile:
@@ -212,6 +258,8 @@ def main() -> None:
                 if state.is_paused:
                     continue
                 if state.phase == config.PHASE_EXCAVATION:
+                    if not state.excavation_countdown_done:
+                        continue
                     now = pygame.time.get_ticks()
                     action_key = None
                     if event.key == pygame.K_SPACE:
@@ -246,6 +294,10 @@ def main() -> None:
                             state.grid,
                             state.fossils,
                         ):
+                            pre_state = tile.state
+                            pre_discovered = 0
+                            if tile.fossil_id and tile.fossil_id in state.fossils:
+                                pre_discovered = len(state.fossils[tile.fossil_id].discovered_tiles)
                             state.narration = apply_action(
                                 action_key,
                                 state.grid,
@@ -255,6 +307,7 @@ def main() -> None:
                                 state.fossils,
                                 now,
                             )
+                            _play_sfx("dig")
                             state.player_last_action = action_key
                             state.player_last_action_ticks = now
                             state.player_action_cooldown_until = now + config.ACTION_COOLDOWNS_MS[action_key]
@@ -264,10 +317,24 @@ def main() -> None:
                                 state.player_claim_left -= 1
                             elif action_key == config.ACTION_SURVEY:
                                 state.player_survey_ready_at = now + config.SURVEY_COOLDOWN_MS
+                            if tile.fossil_id and tile.state == "revealed" and pre_state != "revealed":
+                                fossil = state.fossils.get(tile.fossil_id)
+                                if fossil:
+                                    if len(fossil.discovered_tiles) > pre_discovered:
+                                        if fossil.rarity == "rare":
+                                            _play_sfx("fossil_rare")
+                                        else:
+                                            _play_sfx("fossil_common")
                         else:
                             state.narration = "That tile is not a valid target."
+                            _play_sfx("invalid")
                 elif state.phase == config.PHASE_DIG_COMPLETE:
                     if event.key == pygame.K_RETURN:
+                        if state.timeup_popup_started_at == 0:
+                            state.timeup_popup_started_at = pygame.time.get_ticks()
+                        popup_duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
+                        if pygame.time.get_ticks() - state.timeup_popup_started_at < popup_duration:
+                            continue
                         # Now set up the lab phase
                         state.phase = config.PHASE_LAB
                         state.bg_key = "lab_afternoon"
@@ -366,6 +433,7 @@ def main() -> None:
                             state.phase = config.PHASE_MARKET
                             state.bg_key = "auction_night"
                             state.market_substate = config.MARKET_SUB_INTRO
+                            state.market_popup_started_at = 0
                 elif state.phase == config.PHASE_MARKET:
                     if state.market_substate == config.MARKET_SUB_INTRO:
                         if event.key == pygame.K_RETURN:
@@ -384,9 +452,15 @@ def main() -> None:
                                 state.player_score += event_data["player"]
                                 state.ai_score += event_data["ai"]
                                 state.market_current_event = event_data["text"]
+                                prev_emotion = state.player_emotion
                                 state.player_emotion, state.ai_emotion = update_emotions(
                                     state.player_score, state.ai_score
                                 )
+                                if state.player_emotion != prev_emotion:
+                                    state.last_player_emotion = state.player_emotion
+                                    _play_sfx(state.player_emotion.lower())
+                                if event_data["player"] >= 300 or event_data["ai"] >= 300:
+                                    _play_sfx("applause")
                                 state.market_event_index += 1
                             if state.market_event_index >= len(state.market_events):
                                 winner = "Player" if state.player_score >= state.ai_score else "Rival AI"
@@ -402,31 +476,42 @@ def main() -> None:
 
         if state.phase == config.PHASE_EXCAVATION and not state.is_paused:
             now = pygame.time.get_ticks()
-            if state.excavation_start_ticks == 0:
-                state.excavation_start_ticks = now
-                state.excavation_end_ticks = now + config.EXCAVATION_DURATION_MS
-                state.excavation_time_left_ms = config.EXCAVATION_DURATION_MS
+            if not state.excavation_countdown_done:
+                if state.excavation_countdown_started_at == 0:
+                    state.excavation_countdown_started_at = now
+                countdown_total = config.COUNTDOWN_STEP_MS * 4
+                if now - state.excavation_countdown_started_at >= countdown_total:
+                    state.excavation_countdown_done = True
+                    state.excavation_start_ticks = now
+                    state.excavation_end_ticks = now + config.EXCAVATION_DURATION_MS
+                    state.excavation_time_left_ms = config.EXCAVATION_DURATION_MS
+            else:
+                if state.excavation_start_ticks == 0:
+                    state.excavation_start_ticks = now
+                    state.excavation_end_ticks = now + config.EXCAVATION_DURATION_MS
+                    state.excavation_time_left_ms = config.EXCAVATION_DURATION_MS
 
-            pressed = pygame.key.get_pressed()
-            dx = int(pressed[pygame.K_RIGHT] or pressed[pygame.K_d]) - int(pressed[pygame.K_LEFT] or pressed[pygame.K_a])
-            dy = int(pressed[pygame.K_DOWN] or pressed[pygame.K_s]) - int(pressed[pygame.K_UP] or pressed[pygame.K_w])
-            dx = max(-1, min(1, dx))
-            dy = max(-1, min(1, dy))
-            if (dx != 0 or dy != 0) and now >= state.player_move_cooldown_until:
-                target_col = state.player_pos[0] + dx
-                target_row = state.player_pos[1] + dy
-                if _can_move_to("player", target_col, target_row):
-                    state.player_pos = (target_col, target_row)
-                    state.player_facing = _direction_from_delta(dx, dy)
-                    state.player_last_move_ticks = now
-                    state.player_move_cooldown_until = now + config.MOVE_COOLDOWN_MS
-                else:
-                    state.narration = "You cannot move there."
+            if state.excavation_countdown_done:
+                pressed = pygame.key.get_pressed()
+                dx = int(pressed[pygame.K_RIGHT] or pressed[pygame.K_d]) - int(pressed[pygame.K_LEFT] or pressed[pygame.K_a])
+                dy = int(pressed[pygame.K_DOWN] or pressed[pygame.K_s]) - int(pressed[pygame.K_UP] or pressed[pygame.K_w])
+                dx = max(-1, min(1, dx))
+                dy = max(-1, min(1, dy))
+                if (dx != 0 or dy != 0) and now >= state.player_move_cooldown_until:
+                    target_col = state.player_pos[0] + dx
+                    target_row = state.player_pos[1] + dy
+                    if _can_move_to("player", target_col, target_row):
+                        state.player_pos = (target_col, target_row)
+                        state.player_facing = _direction_from_delta(dx, dy)
+                        state.player_last_move_ticks = now
+                        state.player_move_cooldown_until = now + config.MOVE_COOLDOWN_MS
+                    else:
+                        state.narration = "You cannot move there."
 
-            state.excavation_time_left_ms = max(0, state.excavation_end_ticks - now)
-            advance_claims(state.grid, delta_ms)
+                state.excavation_time_left_ms = max(0, state.excavation_end_ticks - now)
+                advance_claims(state.grid, delta_ms)
 
-            if now >= state.ai_next_think_at:
+            if state.excavation_countdown_done and now >= state.ai_next_think_at:
                 move_window = config.AI_THINK_INTERVAL_RANGE_MS
                 state.ai_next_think_at = now + state.rng.randint(move_window[0], move_window[1])
                 choice = choose_action(
@@ -451,7 +536,7 @@ def main() -> None:
                     state.ai_target_pos = None
                     state.ai_status = "Searching"
 
-            if state.ai_target_pos:
+            if state.excavation_countdown_done and state.ai_target_pos:
                 ax, ay = state.ai_pos
                 tx, ty = state.ai_target_pos
                 if (ax, ay) != (tx, ty) and now >= state.ai_move_cooldown_until:
@@ -498,6 +583,10 @@ def main() -> None:
                         else:
                             tile = state.grid.get_tile(ax, ay)
                             if tile and can_target_tile(tile, action_key, "ai", state.grid, state.fossils):
+                                pre_state = tile.state
+                                pre_discovered = 0
+                                if tile.fossil_id and tile.fossil_id in state.fossils:
+                                    pre_discovered = len(state.fossils[tile.fossil_id].discovered_tiles)
                                 state.narration = apply_action(
                                     action_key,
                                     state.grid,
@@ -507,6 +596,7 @@ def main() -> None:
                                     state.fossils,
                                     now,
                                 )
+                                _play_sfx("dig")
                                 state.ai_last_action = action_key
                                 state.ai_last_action_ticks = now
                                 state.ai_action_cooldown_until = now + config.ACTION_COOLDOWNS_MS[action_key]
@@ -516,15 +606,25 @@ def main() -> None:
                                     state.ai_claim_left -= 1
                                 elif action_key == config.ACTION_SURVEY:
                                     state.ai_survey_ready_at = now + config.SURVEY_COOLDOWN_MS
+                                if tile.fossil_id and tile.state == "revealed" and pre_state != "revealed":
+                                    fossil = state.fossils.get(tile.fossil_id)
+                                    if fossil:
+                                        if len(fossil.discovered_tiles) > pre_discovered:
+                                            if fossil.rarity == "rare":
+                                                _play_sfx("fossil_rare")
+                                            else:
+                                                _play_sfx("fossil_common")
                                 state.ai_target_action = None
                                 state.ai_target_pos = None
                             else:
                                 state.ai_target_action = None
                                 state.ai_target_pos = None
 
-            if state.excavation_time_left_ms <= 0:
+            if state.excavation_countdown_done and state.excavation_time_left_ms <= 0:
                 state.phase = config.PHASE_DIG_COMPLETE
-                state.narration = "The dig site has closed."
+                state.narration = ""
+                state.timeup_popup_started_at = 0
+                state.market_final_sfx_played = False
 
         bg_sprite = sprites.get_background_sprite(state.bg_key)
         if bg_sprite:
@@ -592,7 +692,13 @@ def main() -> None:
                 draw_excavation_hud(screen, label_font, state)
             else:
                 # Overlay the dig-complete announcement on top of the frozen grid
-                draw_dig_complete_screen(screen, label_font)
+                show_prompt = False
+                if state.timeup_popup_started_at == 0:
+                    state.timeup_popup_started_at = pygame.time.get_ticks()
+                popup_duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
+                if pygame.time.get_ticks() - state.timeup_popup_started_at >= popup_duration:
+                    show_prompt = True
+                draw_dig_complete_screen(screen, label_font, show_prompt)
                 # Redraw the header on top of the overlay so "Dig Site Closed" remains visible
                 draw_header(screen, title_font, label_font, state.phase)
             
@@ -637,6 +743,60 @@ def main() -> None:
                 )
             elif state.market_substate == config.MARKET_SUB_FINAL:
                 final_buttons = draw_market_final_screen(screen, label_font, state.market_final_lines)
+                if not state.market_final_sfx_played:
+                    state.market_final_sfx_played = True
+                    if state.player_score >= state.ai_score:
+                        _play_sfx("applause")
+                    else:
+                        _play_sfx("youlose")
+
+        now = pygame.time.get_ticks()
+        popup_sprite = None
+        popup_alpha = 0
+        if state.phase == config.PHASE_EXCAVATION and not state.excavation_countdown_done:
+            elapsed = now - state.excavation_countdown_started_at
+            step = config.COUNTDOWN_STEP_MS
+            index = elapsed // step
+            countdown_keys = ["countdown_3", "countdown_2", "countdown_1", "countdown_go"]
+            if 0 <= index < len(countdown_keys):
+                popup_sprite = sprites.get_popup_sprite(countdown_keys[int(index)])
+                within_step = elapsed % step
+                popup_alpha = _popup_alpha(
+                    within_step,
+                    step,
+                    config.COUNTDOWN_FADE_IN_MS,
+                    config.COUNTDOWN_FADE_OUT_MS,
+                )
+        elif state.phase == config.PHASE_DIG_COMPLETE:
+            if state.timeup_popup_started_at == 0:
+                state.timeup_popup_started_at = now
+            elapsed = now - state.timeup_popup_started_at
+            duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
+            if elapsed < duration:
+                popup_sprite = sprites.get_popup_sprite("countdown_timesup")
+                popup_alpha = _popup_alpha(
+                    elapsed,
+                    duration,
+                    config.POPUP_FADE_IN_MS,
+                    config.POPUP_FADE_OUT_MS,
+                )
+        elif state.phase == config.PHASE_MARKET and state.market_substate == config.MARKET_SUB_INTRO:
+            if state.market_popup_started_at == 0:
+                state.market_popup_started_at = now
+                _play_sfx("crowd_gavel")
+            elapsed = now - state.market_popup_started_at
+            duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
+            if elapsed < duration:
+                popup_sprite = sprites.get_popup_sprite(_trend_popup_key(state.market_trend))
+                popup_alpha = _popup_alpha(
+                    elapsed,
+                    duration,
+                    config.POPUP_FADE_IN_MS,
+                    config.POPUP_FADE_OUT_MS,
+                )
+
+        if popup_sprite and popup_alpha > 0:
+            draw_popup(screen, popup_sprite, popup_alpha)
         pygame.display.flip()
 
     pygame.quit()
