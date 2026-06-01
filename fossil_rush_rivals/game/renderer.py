@@ -1029,13 +1029,27 @@ def draw_market_auction_screen(
 
 
 def draw_market_final_screen(surface: pygame.Surface, font: pygame.font.Font, lines: list[str]) -> list[pygame.Rect]:
-    panel_rect = pygame.Rect(120, 200, config.WINDOW_WIDTH - 240, 380)
+    panel_rect = pygame.Rect(80, 150, config.WINDOW_WIDTH - 160, 450)
     _panel(surface, panel_rect)
-    draw_text(surface, "Final Valuation", (panel_rect.x + 16, panel_rect.y + 16), font, config.THEME_TEXT_GOLD)
+    
+    # Large beautiful local Georgia fonts
+    header_font = pygame.font.SysFont("georgia", 40)
+    details_font = pygame.font.SysFont("georgia", 28)
+    
+    # 1. Header (Centered)
+    title = "Final Valuation"
+    title_w = header_font.size(title)[0]
+    draw_text(surface, title, (panel_rect.centerx - title_w // 2, panel_rect.y + 26), header_font, config.THEME_TEXT_GOLD)
+    
+    # 2. Detail Lines (Centered)
     for index, line in enumerate(lines[:10]):
-        draw_text(surface, line, (panel_rect.x + 16, panel_rect.y + 56 + index * 26), font)
+        line_w = details_font.size(line)[0]
+        color = config.THEME_TEXT_GOLD if "Winner:" in line else config.THEME_TEXT_CREAM
+        draw_text(surface, line, (panel_rect.centerx - line_w // 2, panel_rect.y + 96 + index * 42), details_font, color)
+        
+    # 3. Interactive Buttons
     labels = ["Update Field Journal", "Retry", "Main Menu"]
-    rects = _button_rects(labels, start_y=panel_rect.y + 320)
+    rects = _button_rects(labels, start_y=panel_rect.y + 360)
     for rect, label in zip(rects, labels):
         _draw_button(surface, rect, label, font)
     return rects
