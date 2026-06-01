@@ -61,6 +61,7 @@ FEATURE_NAMES = [
     "surveyed_neighbors",
     "dist_survey",
     "dist_player_reveal",
+    "dist_player",
     "time_left",
     "dig_progress",
     "dig_required",
@@ -193,6 +194,10 @@ def main() -> None:
         dist_survey = _distance_norm(x, y, all_survey_coords)
         dist_player_reveal = _distance_norm(x, y, player_reveal_coords)
 
+        player_x = float(rng.integers(0, GRID_COLS))
+        player_y = float(rng.integers(0, GRID_ROWS))
+        dist_player = _distance_norm(x, y, [(int(player_x), int(player_y))])
+
         time_left = float(rng.integers(5, 60)) / 60.0
 
         actor_x = float(rng.integers(0, GRID_COLS)) / max(GRID_COLS - 1, 1)
@@ -202,15 +207,17 @@ def main() -> None:
         facing_flags = [0.0] * 8
         facing_flags[facing_index] = 1.0
 
+        claim_aggression_factor = 1.0 - dist_player
+
         if player_profile_key == "rush" and ai_profile_key == "survey":
             focus_bonus = player_pressure * 0.35 + contest_pressure * 0.30
-            aggression_bonus = action_rush * 0.35 + action_claim * 0.30
+            aggression_bonus = action_rush * 0.35 + action_claim * 0.30 * claim_aggression_factor
         elif player_profile_key == "survey" and ai_profile_key == "rush":
             focus_bonus = ai_pressure * 0.35 + contest_pressure * 0.30
-            aggression_bonus = action_rush * 0.45 + action_claim * 0.35
+            aggression_bonus = action_rush * 0.45 + action_claim * 0.35 * claim_aggression_factor
         else:
             focus_bonus = contest_pressure * 0.40 + player_pressure * 0.20 + survey_pressure * 0.15
-            aggression_bonus = action_rush * 0.40 + action_claim * 0.35
+            aggression_bonus = action_rush * 0.40 + action_claim * 0.35 * claim_aggression_factor
 
         fossil_bias = (
             (1.0 - dist_hotspot) * 0.42
@@ -256,6 +263,7 @@ def main() -> None:
                 surveyed_neighbors,
                 dist_survey,
                 dist_player_reveal,
+                dist_player,
                 time_left,
                 dig_progress_norm,
                 dig_required_norm,

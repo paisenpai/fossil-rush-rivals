@@ -1,8 +1,7 @@
 {
-  "node_count": 7,
+  "node_count": 1,
   "max_depth": 3,
   "classes": [
-    1,
     2
   ],
   "feature_importances": {
@@ -18,7 +17,8 @@
     "revealed_neighbors": 0.0,
     "surveyed_neighbors": 0.0,
     "dist_survey": 0.0,
-    "dist_player_reveal": 0.7936371003669431,
+    "dist_player_reveal": 0.0,
+    "dist_player": 0.0,
     "time_left": 0.0,
     "dig_progress": 0.0,
     "dig_required": 0.0,
@@ -28,25 +28,13 @@
     "facing_n": 0.0,
     "facing_ne": 0.0,
     "facing_e": 0.0,
-    "facing_se": 0.2063628996330569,
+    "facing_se": 0.0,
     "facing_s": 0.0,
     "facing_sw": 0.0,
     "facing_w": 0.0,
     "facing_nw": 0.0
   },
   "rules": [
-    {
-      "label": "2",
-      "score": 1.0
-    },
-    {
-      "label": "2",
-      "score": 1.0
-    },
-    {
-      "label": "2",
-      "score": 1.0
-    },
     {
       "label": "2",
       "score": 1.0
@@ -66,6 +54,7 @@
     "surveyed_neighbors",
     "dist_survey",
     "dist_player_reveal",
+    "dist_player",
     "time_left",
     "dig_progress",
     "dig_required",

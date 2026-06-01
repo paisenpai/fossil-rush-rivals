@@ -440,6 +440,7 @@ def main() -> None:
                     actor_pos=state.ai_pos,
                     actor_facing=state.ai_facing,
                     actor_is_moving=(now - state.ai_last_move_ticks) < config.MOVE_COOLDOWN_MS,
+                    player_pos=state.player_pos,
                 )
                 if choice:
                     state.ai_target_action = choice.action
@@ -467,7 +468,7 @@ def main() -> None:
                                 return curr
                             for dx, dy in offsets:
                                 nx, ny = cx + dx, cy + dy
-                                if (nx, ny) not in came_from and (_can_move_to("ai", nx, ny) or (nx, ny) == (goal_x, goal_y)):
+                                if (nx, ny) not in came_from and _can_move_to("ai", nx, ny):
                                     came_from[(nx, ny)] = (cx, cy)
                                     queue.append((nx, ny))
                         return start_x, start_y

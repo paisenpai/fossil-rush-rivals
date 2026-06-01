@@ -1,7 +1,7 @@
 {
   "seed": 12345,
   "samples": 50000,
-  "feature_count": 27,
+  "feature_count": 28,
   "feature_names": [
     "x_norm",
     "y_norm",
@@ -16,6 +16,7 @@
     "surveyed_neighbors",
     "dist_survey",
     "dist_player_reveal",
+    "dist_player",
     "time_left",
     "dig_progress",
     "dig_required",

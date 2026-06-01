@@ -136,11 +136,13 @@ def _tile_feature_vector(
     actor_pos: Tuple[int, int] | None,
     actor_facing: str | None,
     actor_is_moving: bool | None,
+    player_pos: Tuple[int, int] | None = None,
 ) -> List[float]:
     ai_revealed, player_revealed, surveyed_neighbors = _count_neighbors(grid, tile, actor)
     revealed_neighbors = ai_revealed + player_revealed
     dist_survey = _distance_norm(tile, surveyed_coords)
     dist_player_reveal = _distance_norm(tile, player_reveal_coords)
+    dist_player = _distance_norm(tile, [player_pos]) if player_pos else 1.0
     x_norm = tile.x / max(config.GRID_COLS - 1, 1)
     y_norm = tile.y / max(config.GRID_ROWS - 1, 1)
     state_hidden = 1.0 if tile.state == "hidden" else 0.0
@@ -186,6 +188,7 @@ def _tile_feature_vector(
         surveyed_neighbors / 8.0,
         dist_survey,
         dist_player_reveal,
+        dist_player,
         time_left_norm,
         dig_progress_norm,
         dig_required_norm,
@@ -207,6 +210,7 @@ def _tile_feature_dict(
     actor_pos: Tuple[int, int] | None,
     actor_facing: str | None,
     actor_is_moving: bool | None,
+    player_pos: Tuple[int, int] | None = None,
 ) -> Dict[str, float]:
     ai_revealed, player_revealed, surveyed_neighbors = _count_neighbors(grid, tile, actor)
     revealed_neighbors = ai_revealed + player_revealed
@@ -247,6 +251,7 @@ def _tile_feature_dict(
         "surveyed_neighbors": surveyed_neighbors / 8.0,
         "dist_survey": dist_survey,
         "dist_player_reveal": dist_player_reveal,
+        "dist_player": _distance_norm(tile, [player_pos]) if player_pos else 1.0,
         "time_left": time_left_norm,
         "dig_progress": dig_progress_norm,
         "dig_required": dig_required_norm,
@@ -281,6 +286,7 @@ def choose_action(
     actor_pos: Tuple[int, int] | None = None,
     actor_facing: str | None = None,
     actor_is_moving: bool | None = None,
+    player_pos: Tuple[int, int] | None = None,
 ) -> Optional[AiChoice]:
     actions = [
         config.ACTION_SURVEY,
@@ -328,6 +334,7 @@ def choose_action(
                 actor_pos,
                 actor_facing,
                 actor_is_moving,
+                player_pos,
             )
             feature_dict = _tile_feature_dict(
                 grid,
@@ -340,6 +347,7 @@ def choose_action(
                 actor_pos,
                 actor_facing,
                 actor_is_moving,
+                player_pos,
             )
             kmeans_score = models.kmeans.score_zone(vector)
             em_score = models.em.estimate(vector)

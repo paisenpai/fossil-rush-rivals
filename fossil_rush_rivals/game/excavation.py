@@ -149,12 +149,14 @@ def can_target_tile(
             return True
         return is_tile_actionable(tile) and (tile.claimed_by is None or tile.claimed_by == actor)
     if action == config.ACTION_CLAIM:
+        if not is_tile_claimable(tile) or tile.claimed_by is not None:
+            return False
         if grid:
             for claim_tile in _area_tiles(grid, tile, radius=1):
                 if is_tile_claimable(claim_tile) and claim_tile.claimed_by is None:
                     return True
             return False
-        return is_tile_claimable(tile) and tile.claimed_by is None
+        return True
     return False
 
 
