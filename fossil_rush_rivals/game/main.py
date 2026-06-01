@@ -39,6 +39,14 @@ from . import sprites
 def main() -> None:
     pygame.init()
     pygame.mixer.init()
+    # Play and loop theme music indefinitely throughout the game
+    try:
+        pygame.mixer.music.load("assets/sfx/theme.ogg")
+        pygame.mixer.music.play(-1)
+    except Exception as e:
+        if config.AI_DEBUG_LOG:
+            print(f"Debug: Failed to load or play theme music: {e}")
+
     screen = pygame.display.set_mode((config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
     pygame.display.set_caption(config.TITLE_TEXT)
     clock = pygame.time.Clock()
@@ -772,14 +780,7 @@ def main() -> None:
                 state.timeup_popup_started_at = now
             elapsed = now - state.timeup_popup_started_at
             duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
-            if elapsed < duration:
-                popup_sprite = sprites.get_popup_sprite("countdown_timesup")
-                popup_alpha = _popup_alpha(
-                    elapsed,
-                    duration,
-                    config.POPUP_FADE_IN_MS,
-                    config.POPUP_FADE_OUT_MS,
-                )
+            # Time's up popup box is removed per user request
         elif state.phase == config.PHASE_MARKET and state.market_substate == config.MARKET_SUB_INTRO:
             if state.market_popup_started_at == 0:
                 state.market_popup_started_at = now
