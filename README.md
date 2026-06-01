@@ -71,14 +71,14 @@ The AI opponent runs a **parallel evaluation pipeline**: when choosing an action
 | Language | Python |
 | Game Engine | Pygame (2D retro pixel-art rendering) |
 | Clustering / Trees | K-Means, Decision Tree, EM, AdaBoost |
-| Neural Network | NumPy / PyTorch (Backpropagation) |
+| Neural Network | NumPy |
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-- Python 3.9+
+- Python 3.12
 - `pip` and `venv`
 
 ### 1. Clone the Repository
@@ -134,7 +134,7 @@ python -m fossil_rush_rivals.game.main
 
 | Name | Role |
 |------|------|
-| Deposoy, John Gavin | |
-| Lagman, John Ferry D. | |
-| Reyes, Redd Lawrence M. | |
-| Sagun, Eujin Rod L. | |
+| Deposoy, John Gavin | Lead Developer |
+| Lagman, John Ferry D. | AI Trainer |
+| Reyes, Redd Lawrence M. | System Architect |
+| Sagun, Eujin Rod L. | Documenter |
