@@ -70,7 +70,7 @@ The AI opponent runs a **parallel evaluation pipeline**: when choosing an action
 |-----------|------------|
 | Language | Python |
 | Game Engine | Pygame (2D retro pixel-art rendering) |
-| Clustering / Trees | Scikit-learn (K-Means, Decision Tree, EM, AdaBoost) |
+| Clustering / Trees | K-Means, Decision Tree, EM, AdaBoost |
 | Neural Network | NumPy / PyTorch (Backpropagation) |
 
 ---
