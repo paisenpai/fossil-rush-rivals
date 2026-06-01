@@ -49,7 +49,6 @@ SET_PIECES = {
         ("set_mosasaur_skull", "Mosasaur Skull"),
     ],
     "ice_age_mammoth": [
-        ("set_mammoth_molar", "Mammoth Molar"),
         ("set_mammoth_skull", "Mammoth Skull"),
         ("set_mammoth_torso", "Mammoth Torso"),
     ],
@@ -72,35 +71,50 @@ COMMON_FOSSILS = [
     ("fossil_bone_fragment", "Small Bone Fragment", "common", 90),
 ]
 
-SHAPES = [
-    [(0, 0)],
-    [(0, 0), (1, 0)],
-    [(0, 0), (0, 1)],
-    [(0, 0), (1, 0), (2, 0)],
-    [(0, 0), (0, 1), (0, 2)],
-    [(0, 0), (1, 0), (0, 1)],
-    [(0, 0), (1, 0), (2, 0), (3, 0)],
-    [(0, 0), (0, 1), (0, 2), (0, 3)],
-    [(0, 0), (1, 0), (0, 1), (1, 1)],
-    [(0, 0), (1, 0), (2, 0), (1, 1)],
-    [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1)],
-    [(0, 0), (1, 0), (2, 0), (2, 1), (1, 1)],
-    [(0, 0), (0, 1), (1, 1), (1, 2), (2, 2)],
-    [(0, 0), (1, 0), (0, 1), (1, 1), (2, 1)],
-    [(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)],
-    [(0, 0), (1, 0), (2, 0), (0, 1), (2, 1), (1, 2)],
-    [(0, 0), (0, 1), (1, 1), (2, 1), (2, 2)],
-]
+FOSSIL_TILE_SIZES: Dict[str, Tuple[int, int]] = {
+    # 1x1 fossils
+    "fossil_ammonite": (1, 1),
+    "fossil_bone_fragment": (1, 1),
+    "fossil_brachiopod": (1, 1),
+    "fossil_coprolite": (1, 1),
+    "fossil_crinoid": (1, 1),
+    "fossil_fern": (1, 1),
+    "fossil_shark_tooth": (1, 1),
+    "fossil_trilobite": (1, 1),
+    "fossil_wood": (1, 1),
+    "set_mosasaur_tooth": (1, 1),
+    # 2x2 fossils
+    "set_mammoth_skull": (2, 2),
+    "set_mammoth_torso": (2, 2),
+    "set_mosasaur_skull": (2, 2),
+    "set_trex_feet": (2, 2),
+    "set_trex_skull": (2, 2),
+    "set_trex_torso": (2, 2),
+    "set_triceratops_skull": (2, 2),
+    "set_triceratops_tail": (2, 2),
+    "set_triceratops_torso": (2, 2),
+    # 2x3 fossils (width x height)
+    "set_mosasaur_torso": (2, 3),
+}
 
 FULL_SET_CHANCE = 0.30
 DECOY_COUNT = 8
+
+
+def fossil_tile_size(fossil_id: str) -> Tuple[int, int]:
+    return FOSSIL_TILE_SIZES.get(fossil_id, (1, 1))
+
+
+def _size_offsets(size: Tuple[int, int]) -> List[Tuple[int, int]]:
+    width, height = size
+    return [(dx, dy) for dy in range(height) for dx in range(width)]
 
 
 def build_templates(rng) -> List[FossilTemplate]:
     templates: List[FossilTemplate] = []
     common = rng.sample(COMMON_FOSSILS, k=8)
     for fossil_id, name, _rarity, _base_value in common:
-        offsets = rng.choice(SHAPES)
+        offsets = _size_offsets(fossil_tile_size(fossil_id))
         templates.append(
             FossilTemplate(
                 fossil_id=fossil_id,
@@ -114,7 +128,7 @@ def build_templates(rng) -> List[FossilTemplate]:
     if rng.random() < FULL_SET_CHANCE:
         set_id = rng.choice(list(SET_PIECES.keys()))
         for fossil_id, name in SET_PIECES[set_id]:
-            offsets = rng.choice(SHAPES)
+            offsets = _size_offsets(fossil_tile_size(fossil_id))
             templates.append(
                 FossilTemplate(
                     fossil_id=fossil_id,
@@ -127,7 +141,7 @@ def build_templates(rng) -> List[FossilTemplate]:
     else:
         for set_id, pieces in rng.sample(list(SET_PIECES.items()), k=2):
             fossil_id, name = rng.choice(pieces)
-            offsets = rng.choice(SHAPES)
+            offsets = _size_offsets(fossil_tile_size(fossil_id))
             templates.append(
                 FossilTemplate(
                     fossil_id=fossil_id,

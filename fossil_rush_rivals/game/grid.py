@@ -27,6 +27,7 @@ class Tile:
     survey_result: Optional[str] = None
     survey_started_at: int = 0
     obstacle: bool = False
+    last_dirt_key: str = "hidden_dirt"
 
     def label(self) -> str:
         if self.state == "hidden":

@@ -54,6 +54,7 @@ def apply_survey(tile: Tile, fossils: Dict[str, Fossil], now_ms: int) -> None:
         tile.survey_result = "detected"
         tile.dig_progress = 0
         tile.dig_required = 1
+        tile.last_dirt_key = "surveyed_dirt_detected"
         if tile.content_type == "fossil" and tile.fossil_id and tile.fossil_id in fossils:
             fossil = fossils[tile.fossil_id]
             if len(fossil.tiles) > 1:
@@ -64,6 +65,7 @@ def apply_survey(tile: Tile, fossils: Dict[str, Fossil], now_ms: int) -> None:
         tile.survey_result = "none"
         tile.dig_progress = 0
         tile.dig_required = 1
+        tile.last_dirt_key = "surveyed_dirt_none"
         tile.survey_hint = "faint traces"
 
 
@@ -75,6 +77,7 @@ def apply_partial_reveal(tile: Tile, fossils: Dict[str, Fossil], now_ms: int) ->
         tile.survey_result = "detected"
         tile.dig_progress = 0
         tile.dig_required = 1
+        tile.last_dirt_key = "surveyed_dirt_detected"
         if tile.content_type == "fossil" and tile.fossil_id and tile.fossil_id in fossils:
             fossil = fossils[tile.fossil_id]
             if len(fossil.tiles) > 1:
@@ -83,10 +86,20 @@ def apply_partial_reveal(tile: Tile, fossils: Dict[str, Fossil], now_ms: int) ->
         tile.survey_hint = "fossil traces"
     else:
         tile.survey_result = "none"
+        tile.last_dirt_key = "surveyed_dirt_none"
         tile.survey_hint = "disturbed ground"
 
 
 def apply_reveal(tile: Tile, owner: str) -> None:
+    if tile.last_dirt_key is None:
+        tile.last_dirt_key = "hidden_dirt"
+    if tile.state == "hidden":
+        tile.last_dirt_key = "hidden_dirt"
+    elif tile.state == "surveyed":
+        if tile.survey_result == "detected":
+            tile.last_dirt_key = "surveyed_dirt_detected"
+        elif tile.survey_result == "none":
+            tile.last_dirt_key = "surveyed_dirt_none"
     tile.state = "revealed"
     tile.survey_state = None
     tile.survey_result = None

@@ -32,7 +32,7 @@
       "authenticated": true
     },
     "set_triceratops_torso": {
-      "name": "Triceratops Horn Core",
+      "name": "Triceratops Torso",
       "code": "THC",
       "discovered": 1,
       "last_found": "2026-05-30"
@@ -48,17 +48,17 @@
       "authenticated": true
     },
     "set_triceratops_skull": {
-      "name": "Triceratops Frill Fragment",
-      "description": "Frill fragment with distinctive bony ridges.",
+      "name": "Triceratops Skull",
+      "description": "Skull fragment with broad bony plates.",
       "discovered": 1,
       "last_found": "2026-05-30",
       "year_discovered": "1889",
-      "facts": "Frills may have served for species recognition.",
+      "facts": "Triceratops skulls had broad bony plates.",
       "authenticated": true
     },
     "set_mosasaur_skull": {
-      "name": "Mosasaur Paddle Bone",
-      "description": "Paddle bone fragment from a mosasaur set.",
+      "name": "Mosasaur Skull",
+      "description": "Skull fragment from a mosasaur set.",
       "discovered": 1,
       "last_found": "2026-05-30",
       "restoration_notes": "Edge support prevents stress fractures."
@@ -101,19 +101,19 @@
     },
     "set_triceratops_tail": {
       "name": "Triceratops Tail",
-      "description": "Tooth fragment from a Triceratops set piece.",
+      "description": "Tail fragment from a Triceratops set piece.",
       "discovered": 2,
       "last_found": "2026-06-01",
       "year_discovered": "1890",
       "facts": "Triceratops teeth were built for grinding plants.",
       "authenticated": true
     },
-    "set_mammoth_molar": {
-      "name": "Mammoth Molar",
-      "description": "Large molar fragment with ridged enamel.",
+    "set_mammoth_skull": {
+      "name": "Mammoth Skull",
+      "description": "Skull fragment from an ice age mammoth.",
       "discovered": 2,
       "last_found": "2026-06-01",
-      "showcase_notes": "Ridged surface looks striking in close-up."
+      "showcase_notes": "Pairs well with torso fragments for scale."
     },
     "fossil_ammonite": {
       "name": "Ammonite",

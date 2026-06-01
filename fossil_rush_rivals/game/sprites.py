@@ -139,7 +139,7 @@ def load_sprites() -> None:
         # Set B
         "set_mosasaur_tooth", "set_mosasaur_torso", "set_mosasaur_skull",
         # Set C
-        "set_mammoth_molar", "set_mammoth_skull", "set_mammoth_torso",
+        "set_mammoth_skull", "set_mammoth_torso",
         # Set Trex
         "set_trex_skull", "set_trex_torso", "set_trex_feet",
         # Standalones

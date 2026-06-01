@@ -586,7 +586,7 @@ def main() -> None:
             title_buttons = []
             final_buttons = []
         elif state.phase in {config.PHASE_EXCAVATION, config.PHASE_DIG_COMPLETE}:
-            draw_grid(screen, state.grid, label_font, state.hover_tile)
+            draw_grid(screen, state.grid, label_font, state.hover_tile, state.fossils)
             draw_characters(screen, label_font, state)
             if state.phase == config.PHASE_EXCAVATION:
                 draw_excavation_hud(screen, label_font, state)

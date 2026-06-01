@@ -4,7 +4,7 @@ import pygame
 
 from . import config
 from . import sprites
-from .fossils import Fossil
+from .fossils import Fossil, fossil_tile_size
 from .grid import Grid, Tile
 
 
@@ -165,7 +165,13 @@ def _obstacle_sprite_key(grid: Grid, tile: Tile) -> str:
     return "obstacle_center"
 
 
-def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover_tile: Optional[Tile]) -> None:
+def draw_grid(
+    surface: pygame.Surface,
+    grid: Grid,
+    font: pygame.font.Font,
+    hover_tile: Optional[Tile],
+    fossils: Dict[str, Fossil],
+) -> None:
     now = pygame.time.get_ticks()
     for row in range(config.GRID_ROWS):
         for col in range(config.GRID_COLS):
@@ -181,7 +187,7 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
 
             is_hovered = hover_tile and hover_tile.x == col and hover_tile.y == row
 
-            # Draw the appropriate terrain, obstacle, or fossil sprite
+            # Draw the appropriate terrain, obstacle, or dirt sprite
             sprite = None
             if tile.obstacle:
                 sprite_key = _obstacle_sprite_key(grid, tile)
@@ -211,13 +217,8 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
                 elif tile.content_type == "decoy":
                     sprite = sprites.get_item_sprite("decoy", scaled=True)
                 elif tile.content_type == "fossil":
-                    if tile.fossil_id:
-                        if tile.fossil_variant == "fragment":
-                            sprite = sprites.get_item_sprite("fossil_fragment", scaled=True)
-                        else:
-                            sprite = sprites.get_item_sprite(tile.fossil_id, scaled=True)
-                    if not sprite:
-                        sprite = sprites.get_item_sprite("empty_dirt", scaled=True)
+                    base_key = tile.last_dirt_key or "hidden_dirt"
+                    sprite = sprites.get_item_sprite(base_key, scaled=True)
 
             # Blit sprite, or use the original fallback if sprites aren't loaded yet
             if sprite:
@@ -230,6 +231,42 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
                 label_surface = font.render(label, True, config.TEXT_COLOR)
                 label_rect = label_surface.get_rect(center=rect.center)
                 surface.blit(label_surface, label_rect)
+
+    for row in range(config.GRID_ROWS):
+        for col in range(config.GRID_COLS):
+            tile = grid.tiles[row][col]
+            if not tile.active:
+                continue
+            if tile.state != "revealed" or tile.content_type != "fossil" or not tile.fossil_id:
+                continue
+            if tile.fossil_variant != "core":
+                continue
+            sprite = sprites.get_item_sprite(tile.fossil_id, scaled=False)
+            if not sprite:
+                continue
+            tile_w, tile_h = fossil_tile_size(tile.fossil_id)
+            target_size = (tile_w * config.TILE_SIZE, tile_h * config.TILE_SIZE)
+            scaled = pygame.transform.smoothscale(sprite, target_size)
+            rect = pygame.Rect(
+                config.GRID_LEFT + col * config.TILE_SIZE,
+                config.GRID_TOP + row * config.TILE_SIZE,
+                target_size[0],
+                target_size[1],
+            )
+            surface.blit(scaled, rect)
+
+    for row in range(config.GRID_ROWS):
+        for col in range(config.GRID_COLS):
+            tile = grid.tiles[row][col]
+            rect = pygame.Rect(
+                config.GRID_LEFT + col * config.TILE_SIZE,
+                config.GRID_TOP + row * config.TILE_SIZE,
+                config.TILE_SIZE,
+                config.TILE_SIZE,
+            )
+            if not tile.active:
+                continue
+            is_hovered = hover_tile and hover_tile.x == col and hover_tile.y == row
 
             # Draw progress numbers on surveyed tiles if dig has started
             if tile.state == "surveyed" and tile.content_type in {"fossil", "decoy"} and tile.dig_progress > 0:
