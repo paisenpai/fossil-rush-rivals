@@ -90,7 +90,7 @@ def apply_partial_reveal(tile: Tile, fossils: Dict[str, Fossil], now_ms: int) ->
         tile.survey_hint = "disturbed ground"
 
 
-def apply_reveal(tile: Tile, owner: str) -> None:
+def apply_reveal(tile: Tile) -> None:
     if tile.last_dirt_key is None:
         tile.last_dirt_key = "hidden_dirt"
     if tile.state == "hidden":
@@ -104,9 +104,7 @@ def apply_reveal(tile: Tile, owner: str) -> None:
     tile.survey_state = None
     tile.survey_result = None
     tile.survey_started_at = 0
-    if tile.content_type == "fossil":
-        tile.owner = owner
-    else:
+    if tile.content_type != "fossil":
         tile.owner = None
     if tile.content_type in {"fossil", "decoy"}:
         tile.dig_progress = max(tile.dig_progress, tile.dig_required)
@@ -115,7 +113,9 @@ def apply_reveal(tile: Tile, owner: str) -> None:
 
 
 def _apply_dig(tile: Tile, owner: str, fossils: Dict[str, Fossil], action: str, rng) -> str:
-    apply_reveal(tile, owner=owner)
+    apply_reveal(tile)
+    if tile.content_type == "fossil" and tile.owner is None:
+        tile.owner = owner
     fossil_name = reveal_fossil(fossils, tile, owner)
     actor_label = config.PLAYER_LABEL if owner == "player" else config.AI_LABEL
     rush_note = ""

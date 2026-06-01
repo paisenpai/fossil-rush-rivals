@@ -93,8 +93,8 @@
     "fossil_wood": {
       "name": "Fossilized Wood",
       "description": "Mineralized wood with preserved growth rings and texture.",
-      "discovered": 1,
-      "last_found": "2026-05-31",
+      "discovered": 2,
+      "last_found": "2026-06-01",
       "year_discovered": "1737",
       "facts": "Petrified wood forms when minerals replace organic tissue.",
       "authenticated": true
@@ -131,7 +131,7 @@
   "market_trends": {
     "Museum Night": 5,
     "Research Grant": 2,
-    "Fraud Panic": 3,
+    "Fraud Panic": 4,
     "Collector Craze": 5
   },
   "last_updated": "2026-06-01"
