@@ -353,7 +353,9 @@ def main() -> None:
                             ai_fossils = list_owned_fossils(state.fossils, "ai")
                             for fossil in ai_fossils:
                                 focus = state.lab_focus_ai.get(fossil.fossil_id, config.LAB_CHOICES[0])
-                                state.lab_ai_results.append(apply_lab_focus(fossil, focus, state.rng))
+                                ai_line = apply_lab_focus(fossil, focus, state.rng)
+                                if config.AI_DEBUG_LOG:
+                                    state.lab_ai_results.append(ai_line)
 
                             state.lab_substate = config.LAB_SUB_RESULT
                         elif event.key == pygame.K_BACKSPACE:
@@ -509,7 +511,8 @@ def main() -> None:
             screen.blit(bg_sprite, (0, 0))
         else:
             screen.fill(config.BACKGROUND_COLOR)
-        draw_header(screen, title_font, label_font, state.phase)
+        if state.phase not in {config.PHASE_EXCAVATION, config.PHASE_DIG_COMPLETE}:
+            draw_header(screen, title_font, label_font, state.phase)
         if state.phase == config.PHASE_TITLE:
             title_buttons = draw_title_screen(screen, title_font, label_font)
             final_buttons = []
@@ -567,14 +570,6 @@ def main() -> None:
             draw_characters(screen, label_font, state)
             if state.phase == config.PHASE_EXCAVATION:
                 draw_excavation_hud(screen, label_font, state)
-                action_bar_buttons = draw_action_bar(
-                    screen,
-                    label_font,
-                    state.player_rush_left,
-                    state.player_claim_left,
-                    state.player_survey_ready_at,
-                )
-                draw_narration(screen, label_font, state.narration)
             else:
                 # Overlay the dig-complete announcement on top of the frozen grid
                 draw_dig_complete_screen(screen, label_font)
@@ -605,7 +600,7 @@ def main() -> None:
                 )
             elif state.lab_substate == config.LAB_SUB_RESULT:
                 lab_done_button = None
-                result_lines = state.lab_result_lines + state.lab_ai_results
+                result_lines = state.lab_result_lines
                 draw_lab_result_screen(screen, label_font, result_lines)
             elif state.lab_substate == config.LAB_SUB_CONFIRM:
                 lab_done_button = None

@@ -253,12 +253,8 @@ def draw_grid(surface: pygame.Surface, grid: Grid, font: pygame.font.Font, hover
 def draw_characters(surface: pygame.Surface, font: pygame.font.Font, state) -> None:
     now = pygame.time.get_ticks()
     def _sprite_direction(facing: str) -> str:
-        if facing in {"n", "e", "s", "w"}:
+        if facing in config.DIRECTION_KEYS:
             return facing
-        if facing in {"ne", "nw"}:
-            return "n"
-        if facing in {"se", "sw"}:
-            return "s"
         return "s"
 
     def _action_pose(action_key: Optional[str]) -> Optional[str]:
@@ -320,27 +316,24 @@ def draw_characters(surface: pygame.Surface, font: pygame.font.Font, state) -> N
 
 
 def draw_excavation_hud(surface: pygame.Surface, font: pygame.font.Font, state) -> None:
-    grid_width = config.GRID_COLS * config.TILE_SIZE
-    hud_rect = pygame.Rect(config.GRID_LEFT, config.GRID_TOP - 64, grid_width, 52)
+    bar_width = config.EXCAVATION_TOP_BAR_WIDTH
+    bar_height = config.EXCAVATION_TOP_BAR_HEIGHT
+    bar_x = (config.WINDOW_WIDTH - bar_width) // 2
+    bar_y = config.EXCAVATION_TOP_BAR_TOP
+    hud_rect = pygame.Rect(bar_x, bar_y, bar_width, bar_height)
     _panel(surface, hud_rect)
 
     time_left = max(0, state.excavation_time_left_ms)
     seconds = time_left // 1000
     time_text = f"Time Left: {seconds // 60:02d}:{seconds % 60:02d}"
-    draw_text(surface, "Excavation Phase", (hud_rect.x + 12, hud_rect.y + 8), font, config.THEME_TEXT_GOLD)
-    draw_text(surface, time_text, (hud_rect.x + 12, hud_rect.y + 28), font, config.THEME_TEXT_CREAM)
-
-    right_x = hud_rect.right - 12
-    survey_ready = "Ready" if pygame.time.get_ticks() >= state.player_survey_ready_at else "Cooldown"
-    status_lines = [
-        f"Rush Dig: {state.player_rush_left}",
-        f"Claim Zone: {state.player_claim_left}",
-        f"Survey: {survey_ready}",
-        f"Rival: {state.ai_status or 'Searching'}",
-    ]
-    for index, line in enumerate(status_lines):
-        line_w = font.size(line)[0]
-        draw_text(surface, line, (right_x - line_w, hud_rect.y + 8 + index * 18), font, config.THEME_TEXT_CREAM)
+    text_w = font.size(time_text)[0]
+    draw_text(
+        surface,
+        time_text,
+        (hud_rect.centerx - text_w // 2, hud_rect.y + (hud_rect.height - font.get_height()) // 2),
+        font,
+        config.THEME_TEXT_CREAM,
+    )
 
 
 def draw_narration(surface: pygame.Surface, font: pygame.font.Font, narration: str) -> None:
@@ -895,16 +888,8 @@ def draw_market_auction_screen(
     label_w = font.size("PLAYER")[0]
     draw_text(surface, "PLAYER", (player_col.centerx - label_w // 2, player_col.y + 20), font, config.THEME_TEXT_GOLD)
     
-    # Player character body (looking right / East)
-    player_sprite = sprites.get_character_sprite("player", "walk_e")
-    if player_sprite:
-        scaled_player = pygame.transform.smoothscale(player_sprite, (120, 180))
-        px = player_col.centerx - 60
-        py = player_col.y + 70
-        surface.blit(scaled_player, (px, py))
-        
-    # Player face portrait badge inside styled frame
-    avatar_rect = pygame.Rect(player_col.centerx - 45, player_col.y + 270, 90, 86)
+    # Player emotion portrait inside framed badge
+    avatar_rect = pygame.Rect(player_col.centerx - 55, player_col.y + 130, 110, 100)
     pygame.draw.rect(surface, config.THEME_BG, avatar_rect)
     pygame.draw.rect(surface, config.THEME_WOOD_DARK, avatar_rect, 2)
     border_color_p = config.THEME_GOLD_ACCENT if state.player_emotion in {"Elated", "Anxious"} else config.THEME_STONE_LIGHT
@@ -913,17 +898,13 @@ def draw_market_auction_screen(
     player_face = sprites.get_face_sprite("player", state.player_emotion)
     if player_face:
         orig_w, orig_h = player_face.get_size()
-        scale = min(78 / orig_w, 74 / orig_h)
+        scale = min(96 / orig_w, 90 / orig_h)
         scaled_w = int(orig_w * scale)
         scaled_h = int(orig_h * scale)
         scaled_face = pygame.transform.smoothscale(player_face, (scaled_w, scaled_h))
         fx = avatar_rect.x + (avatar_rect.width - scaled_w) // 2
         fy = avatar_rect.y + (avatar_rect.height - scaled_h) // 2
         surface.blit(scaled_face, (fx, fy))
-        
-    emotion_text = f"Emotion: {state.player_emotion}"
-    em_w = font.size(emotion_text)[0]
-    draw_text(surface, emotion_text, (player_col.centerx - em_w // 2, player_col.y + 375), font, config.THEME_TEXT_CREAM)
     
     # Player Score Plaque
     score_plaque = pygame.Rect(player_col.x + 15, player_col.bottom - 90, player_col.width - 30, 70)
@@ -944,16 +925,8 @@ def draw_market_auction_screen(
     label_w_r = font.size("RIVAL AI")[0]
     draw_text(surface, "RIVAL AI", (rival_col.centerx - label_w_r // 2, rival_col.y + 20), font, config.THEME_TEXT_GOLD)
     
-    # Rival character body (looking left / West)
-    rival_sprite = sprites.get_character_sprite("rival", "walk_w")
-    if rival_sprite:
-        scaled_rival = pygame.transform.smoothscale(rival_sprite, (120, 180))
-        rx = rival_col.centerx - 60
-        ry = rival_col.y + 70
-        surface.blit(scaled_rival, (rx, ry))
-        
-    # Rival face portrait badge inside styled frame
-    avatar_rect_r = pygame.Rect(rival_col.centerx - 45, rival_col.y + 270, 90, 86)
+    # Rival emotion portrait inside framed badge
+    avatar_rect_r = pygame.Rect(rival_col.centerx - 55, rival_col.y + 130, 110, 100)
     pygame.draw.rect(surface, config.THEME_BG, avatar_rect_r)
     pygame.draw.rect(surface, config.THEME_WOOD_DARK, avatar_rect_r, 2)
     border_color_ai = config.THEME_GOLD_ACCENT if state.ai_emotion in {"Elated", "Anxious"} else config.THEME_STONE_LIGHT
@@ -962,17 +935,13 @@ def draw_market_auction_screen(
     rival_face = sprites.get_face_sprite("rival", state.ai_emotion)
     if rival_face:
         orig_w, orig_h = rival_face.get_size()
-        scale = min(78 / orig_w, 74 / orig_h)
+        scale = min(96 / orig_w, 90 / orig_h)
         scaled_w = int(orig_w * scale)
         scaled_h = int(orig_h * scale)
         scaled_face = pygame.transform.smoothscale(rival_face, (scaled_w, scaled_h))
         fx = avatar_rect_r.x + (avatar_rect_r.width - scaled_w) // 2
         fy = avatar_rect_r.y + (avatar_rect_r.height - scaled_h) // 2
         surface.blit(scaled_face, (fx, fy))
-        
-    emotion_text_r = f"Emotion: {state.ai_emotion}"
-    em_w_r = font.size(emotion_text_r)[0]
-    draw_text(surface, emotion_text_r, (rival_col.centerx - em_w_r // 2, rival_col.y + 375), font, config.THEME_TEXT_CREAM)
     
     # Rival Score Plaque
     score_plaque_r = pygame.Rect(rival_col.x + 15, rival_col.bottom - 90, rival_col.width - 30, 70)
@@ -994,7 +963,7 @@ def draw_market_auction_screen(
     al_w = font.size("AUCTIONEER")[0]
     draw_text(surface, "AUCTIONEER", (center_stage.centerx - al_w // 2, center_stage.y + 15), font, config.THEME_TEXT_GOLD)
     
-    auc_badge = pygame.Rect(center_stage.centerx - 36, center_stage.y + 40, 72, 60)
+    auc_badge = pygame.Rect(center_stage.centerx - 45, center_stage.y + 40, 90, 76)
     pygame.draw.rect(surface, config.THEME_BG, auc_badge)
     pygame.draw.rect(surface, config.THEME_GOLD_ACCENT, auc_badge, 2)
     
@@ -1003,66 +972,38 @@ def draw_market_auction_screen(
     auc_face = sprites.get_face_sprite("auctioneer", auc_face_emotion)
     if auc_face:
         orig_w, orig_h = auc_face.get_size()
-        scale = min(60 / orig_w, 56 / orig_h)
+        scale = min(74 / orig_w, 68 / orig_h)
         scaled_w = int(orig_w * scale)
         scaled_h = int(orig_h * scale)
         scaled_auc_face = pygame.transform.smoothscale(auc_face, (scaled_w, scaled_h))
         fx = auc_badge.x + (auc_badge.width - scaled_w) // 2
         fy = auc_badge.y + (auc_badge.height - scaled_h) // 2
         surface.blit(scaled_auc_face, (fx, fy))
-        
-    auc_state = "gesture" if is_revealing else "front_idle"
-    auc_sprite = sprites.get_character_sprite("auctioneer", auc_state)
-    if auc_sprite:
-        scaled_auc = pygame.transform.smoothscale(auc_sprite, (90, 140))
-        ax = center_stage.centerx - 45
-        ay = center_stage.y + 110
-        surface.blit(scaled_auc, (ax, ay))
 
-    # Center Stage Middle: Glowing Showcase Pedestal
-    pedestal_rect = pygame.Rect(center_stage.centerx - 70, center_stage.y + 265, 140, 105)
-    
-    # Soft radial golden glow behind pedestal
-    glow_surf = pygame.Surface((180, 180), pygame.SRCALPHA)
-    pygame.draw.circle(glow_surf, (245, 215, 120, 20), (90, 90), 80)
-    pygame.draw.circle(glow_surf, (245, 215, 120, 45), (90, 90), 50)
-    pygame.draw.circle(glow_surf, (245, 215, 120, 80), (90, 90), 30)
-    surface.blit(glow_surf, (center_stage.centerx - 90, center_stage.y + 220))
-    
-    pygame.draw.rect(surface, config.THEME_WOOD_MED, pedestal_rect)
-    pygame.draw.rect(surface, config.THEME_WOOD_LIGHT, pedestal_rect, 2)
-    pygame.draw.rect(surface, config.THEME_WOOD_DARK, pedestal_rect.inflate(-4, -4), 1)
-    
-    # Detect if any fossil is named in the current event to showcase it!
+    # Center Stage Middle: Current fossil showcase
+    showcase_rect = pygame.Rect(center_stage.centerx - 90, center_stage.y + 190, 180, 120)
     current_fossil = None
     event_text = state.market_current_event
     for fossil in state.fossils.values():
         if fossil.name in event_text:
             current_fossil = fossil
             break
-            
+
     if current_fossil:
         fossil_sprite = sprites.get_item_sprite(current_fossil.fossil_id, scaled=False)
         if fossil_sprite:
             orig_w, orig_h = fossil_sprite.get_size()
-            scale_ratio = min(90 / orig_w, 90 / orig_h)
+            scale_ratio = min(110 / orig_w, 110 / orig_h)
             scaled_w = int(orig_w * scale_ratio)
             scaled_h = int(orig_h * scale_ratio)
             scaled_sprite = pygame.transform.smoothscale(fossil_sprite, (scaled_w, scaled_h))
-            fs_x = pedestal_rect.centerx - scaled_w // 2
             bobbing = int(4 * math.sin(pygame.time.get_ticks() / 150))
-            fs_y = pedestal_rect.y - scaled_h - 10 + bobbing
+            fs_x = showcase_rect.centerx - scaled_w // 2
+            fs_y = showcase_rect.centery - scaled_h // 2 + bobbing
             surface.blit(scaled_sprite, (fs_x, fs_y))
-    else:
-        # Fallback Gavel emblem
-        gavel_color = config.THEME_GOLD_ACCENT
-        pygame.draw.circle(surface, config.THEME_GOLD_SHADOW, (pedestal_rect.centerx, pedestal_rect.y - 30), 20)
-        pygame.draw.circle(surface, config.THEME_GOLD_ACCENT, (pedestal_rect.centerx, pedestal_rect.y - 30), 20, 2)
-        pygame.draw.rect(surface, gavel_color, pygame.Rect(pedestal_rect.centerx - 12, pedestal_rect.y - 36, 24, 8))
-        pygame.draw.line(surface, gavel_color, (pedestal_rect.centerx, pedestal_rect.y - 32), (pedestal_rect.centerx - 14, pedestal_rect.y - 18), 3)
 
     # Center Stage Lower-Middle: Active Market Trend Ribbon
-    trend_rect = pygame.Rect(center_stage.x + 30, center_stage.y + 385, center_stage.width - 60, 42)
+    trend_rect = pygame.Rect(center_stage.x + 30, center_stage.y + 345, center_stage.width - 60, 42)
     trend_colors = {
         "Museum Night": (40, 50, 80),
         "Collector Craze": (95, 75, 40),
@@ -1078,7 +1019,7 @@ def draw_market_auction_screen(
     draw_text(surface, trend_label, (trend_rect.centerx - tl_w // 2, trend_rect.y + 11), font, config.THEME_TEXT_GOLD)
 
     # Center Stage Bottom: Narrator plaque with Word Wrap
-    narration_box = pygame.Rect(center_stage.x + 15, center_stage.y + 445, center_stage.width - 30, 210)
+    narration_box = pygame.Rect(center_stage.x + 15, center_stage.y + 405, center_stage.width - 30, 210)
     pygame.draw.rect(surface, config.THEME_BG, narration_box)
     pygame.draw.rect(surface, config.THEME_STONE_LIGHT, narration_box, 1)
     

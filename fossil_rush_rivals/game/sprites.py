@@ -9,6 +9,7 @@ CHARACTER_SPRITES: Dict[str, Dict[str, pygame.Surface]] = {}
 ITEM_SPRITES: Dict[str, pygame.Surface] = {}
 ITEM_SPRITES_SCALED: Dict[str, pygame.Surface] = {}
 FACE_SPRITES: Dict[str, Dict[str, pygame.Surface]] = {}
+EMOTION_SPRITES: Dict[str, Dict[str, pygame.Surface]] = {}
 BACKGROUND_SPRITES: Dict[str, pygame.Surface] = {}
 BACKGROUND_SPRITE: Optional[pygame.Surface] = None
 TITLE_IMAGE_SPRITE: Optional[pygame.Surface] = None
@@ -94,7 +95,16 @@ def load_sprites() -> None:
 
     # Load Characters
     # Expected characters and their anim states
-    movement_states = ["walk_n", "walk_ne", "walk_e", "walk_se", "walk_s", "walk_w"]
+    movement_states = [
+        "walk_n",
+        "walk_ne",
+        "walk_e",
+        "walk_se",
+        "walk_s",
+        "walk_sw",
+        "walk_w",
+        "walk_nw",
+    ]
     action_states = [
         "dig_n", "dig_s",
         "claim_n", "claim_s",
@@ -220,6 +230,24 @@ def load_sprites() -> None:
     else:
         print(f"Warning: Background file {bg_path} not found.")
 
+    # Load emotion sprites if available
+    emotions_dir = os.path.join(chars_dir, "emotion")
+    if os.path.isdir(emotions_dir):
+        emotions = ["focused", "anxious", "elated", "defeated"]
+        for char_name in ["player", "rival", "auctioneer"]:
+            EMOTION_SPRITES[char_name] = {}
+            for emotion in emotions:
+                filename = f"{char_name}_{emotion}.png"
+                path = os.path.join(emotions_dir, filename)
+                if os.path.exists(path):
+                    try:
+                        surf = pygame.image.load(path).convert_alpha()
+                        EMOTION_SPRITES[char_name][emotion.capitalize()] = surf
+                    except Exception as e:
+                        print(f"Warning: Failed to load emotion sprite {path}: {e}")
+                else:
+                    print(f"Warning: Emotion sprite file {path} not found.")
+
     # Load and Slice Facial Expressions sheet
     faces_path = "assets/characters_facial_expression.png"
     if os.path.exists(faces_path):
@@ -306,6 +334,9 @@ def get_background_sprite(key: str = "homescreen") -> Optional[pygame.Surface]:
 def get_face_sprite(char_name: str, emotion: str) -> Optional[pygame.Surface]:
     """Retrieves a character face sprite surface or None if not loaded."""
     load_sprites()
+    emotion_sprite = EMOTION_SPRITES.get(char_name, {}).get(emotion, None)
+    if emotion_sprite:
+        return emotion_sprite
     return FACE_SPRITES.get(char_name, {}).get(emotion, None)
 
 
