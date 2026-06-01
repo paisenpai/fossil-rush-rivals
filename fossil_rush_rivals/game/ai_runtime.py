@@ -95,18 +95,22 @@ def _neighbor_coords(x: int, y: int) -> List[Tuple[int, int]]:
     ]
 
 
-def _count_neighbors(grid: Grid, tile: Tile) -> Tuple[int, int]:
-    revealed = 0
+def _count_neighbors(grid: Grid, tile: Tile, actor: str) -> Tuple[int, int, int]:
+    ai_revealed = 0
+    player_revealed = 0
     surveyed = 0
     for nx, ny in _neighbor_coords(tile.x, tile.y):
         neighbor = grid.get_tile(nx, ny)
         if not neighbor:
             continue
         if neighbor.state == "revealed":
-            revealed += 1
+            if neighbor.owner == actor:
+                ai_revealed += 1
+            else:
+                player_revealed += 1
         elif neighbor.state == "surveyed":
             surveyed += 1
-    return revealed, surveyed
+    return ai_revealed, player_revealed, surveyed
 
 
 def _distance_norm(tile: Tile, coords: List[Tuple[int, int]]) -> float:
@@ -133,7 +137,8 @@ def _tile_feature_vector(
     actor_facing: str | None,
     actor_is_moving: bool | None,
 ) -> List[float]:
-    revealed_neighbors, surveyed_neighbors = _count_neighbors(grid, tile)
+    ai_revealed, player_revealed, surveyed_neighbors = _count_neighbors(grid, tile, actor)
+    revealed_neighbors = ai_revealed + player_revealed
     dist_survey = _distance_norm(tile, surveyed_coords)
     dist_player_reveal = _distance_norm(tile, player_reveal_coords)
     x_norm = tile.x / max(config.GRID_COLS - 1, 1)
@@ -203,7 +208,8 @@ def _tile_feature_dict(
     actor_facing: str | None,
     actor_is_moving: bool | None,
 ) -> Dict[str, float]:
-    revealed_neighbors, surveyed_neighbors = _count_neighbors(grid, tile)
+    ai_revealed, player_revealed, surveyed_neighbors = _count_neighbors(grid, tile, actor)
+    revealed_neighbors = ai_revealed + player_revealed
     dist_survey = _distance_norm(tile, surveyed_coords)
     dist_player_reveal = _distance_norm(tile, player_reveal_coords)
     time_left_norm = 0.0
@@ -244,6 +250,7 @@ def _tile_feature_dict(
         "time_left": time_left_norm,
         "dig_progress": dig_progress_norm,
         "dig_required": dig_required_norm,
+        "ai_revealed": ai_revealed,
         "actor_x": actor_x_norm,
         "actor_y": actor_y_norm,
         "actor_moving": moving_flag,
@@ -338,6 +345,11 @@ def choose_action(
             em_score = models.em.estimate(vector)
             tree_score = models.decision_tree.score(feature_dict)
             market_score = models.backprop.predict_value(vector)
+            
+            # Distance penalty so AI prefers closer tiles!
+            dist_to_ai = abs(tile.x - actor_pos[0]) + abs(tile.y - actor_pos[1]) if actor_pos else 0
+            distance_penalty = dist_to_ai * 0.03
+            
             combined = kmeans_score + em_score + tree_score + market_score
 
             aggression_bonus = 0.0
@@ -345,13 +357,19 @@ def choose_action(
                 aggression_bonus += (1.0 - feature_dict["dist_survey"]) * 0.3
                 aggression_bonus += (1.0 - feature_dict["dist_player_reveal"]) * 0.2
                 aggression_bonus += feature_dict["surveyed_neighbors"] * 0.15
+                if feature_dict["ai_revealed"] > 0:
+                    aggression_bonus += 0.8
             elif action == config.ACTION_CLAIM:
                 aggression_bonus += (1.0 - feature_dict["dist_survey"]) * 0.25
                 aggression_bonus += (1.0 - feature_dict["dist_player_reveal"]) * 0.2
                 aggression_bonus += feature_dict["surveyed_neighbors"] * 0.1
+                if feature_dict["ai_revealed"] > 0:
+                    aggression_bonus += 0.6
             elif action == config.ACTION_CAREFUL:
                 aggression_bonus += (1.0 - feature_dict["dist_survey"]) * 0.1
-            combined += aggression_bonus
+                if feature_dict["ai_revealed"] > 0:
+                    aggression_bonus += 0.7
+            combined += aggression_bonus - distance_penalty
             adjusted = models.adaboost.adjust_score(combined)
             scored.append((adjusted, action, tile))
 

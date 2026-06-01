@@ -24,8 +24,8 @@
     "fossil_coprolite": {
       "name": "Coprolite",
       "code": "CO",
-      "discovered": 2,
-      "last_found": "2026-05-31",
+      "discovered": 3,
+      "last_found": "2026-06-01",
       "description": "Fossilized waste with preserved inclusions.",
       "year_discovered": "1829",
       "facts": "Coprolites reveal diet details of extinct animals.",
@@ -84,8 +84,8 @@
     "fossil_fern": {
       "name": "Fern Impression",
       "description": "Plant impression fossil preserving delicate leaf patterns.",
-      "discovered": 1,
-      "last_found": "2026-05-30",
+      "discovered": 2,
+      "last_found": "2026-06-01",
       "year_discovered": "1820",
       "facts": "Fern fossils often appear as carbon films in shale.",
       "authenticated": true
@@ -100,10 +100,10 @@
       "authenticated": true
     },
     "set_triceratops_tail": {
-      "name": "Triceratops Tooth",
+      "name": "Triceratops Tail",
       "description": "Tooth fragment from a Triceratops set piece.",
-      "discovered": 1,
-      "last_found": "2026-05-31",
+      "discovered": 2,
+      "last_found": "2026-06-01",
       "year_discovered": "1890",
       "facts": "Triceratops teeth were built for grinding plants.",
       "authenticated": true
@@ -118,9 +118,12 @@
     "fossil_ammonite": {
       "name": "Ammonite",
       "description": "Spiral-shelled cephalopod fossil common in marine rock beds.",
-      "discovered": 1,
+      "discovered": 2,
       "last_found": "2026-06-01",
-      "showcase_notes": "Spiral silhouette reads clearly under strong museum light."
+      "showcase_notes": "Spiral silhouette reads clearly under strong museum light.",
+      "year_discovered": "1799",
+      "facts": "Ammonites vanished with the dinosaurs but left abundant shells.",
+      "authenticated": true
     }
   },
   "sets": {},
@@ -129,7 +132,7 @@
     "Museum Night": 5,
     "Research Grant": 2,
     "Fraud Panic": 3,
-    "Collector Craze": 4
+    "Collector Craze": 5
   },
   "last_updated": "2026-06-01"
 }

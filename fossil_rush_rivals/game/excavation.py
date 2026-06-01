@@ -6,11 +6,11 @@ from .fossils import Fossil, reveal_fossil
 
 
 def is_tile_actionable(tile: Tile) -> bool:
-    return tile.state in {"hidden", "surveyed"} and not tile.obstacle
+    return tile.active and tile.state in {"hidden", "surveyed"} and not tile.obstacle
 
 
 def is_tile_claimable(tile: Tile) -> bool:
-    return tile.state in {"hidden", "surveyed"} and not tile.obstacle
+    return tile.active and tile.state in {"hidden", "surveyed"} and not tile.obstacle
 
 
 def _dig_required_for_tile(tile: Tile, fossils: Dict[str, Fossil]) -> int:
@@ -129,8 +129,19 @@ def can_target_tile(
     grid: Grid | None = None,
     fossils: Dict[str, Fossil] | None = None,
 ) -> bool:
-    if action in {config.ACTION_CAREFUL, config.ACTION_RUSH, config.ACTION_SURVEY}:
-        if action in {config.ACTION_CAREFUL, config.ACTION_RUSH} and _fossil_owned_by_other(tile, actor, fossils):
+    if action == config.ACTION_SURVEY:
+        if grid:
+            has_hidden = False
+            for cross_tile in _cross_tiles(grid, tile):
+                if cross_tile.state == "hidden":
+                    has_hidden = True
+                    break
+            if not has_hidden:
+                return False
+        return is_tile_actionable(tile) and (tile.claimed_by is None or tile.claimed_by == actor)
+        
+    if action in {config.ACTION_CAREFUL, config.ACTION_RUSH}:
+        if _fossil_owned_by_other(tile, actor, fossils):
             return False
         if tile.claimed_by is not None and tile.claimed_by != actor and tile.claim_ms_left > 0:
             return False

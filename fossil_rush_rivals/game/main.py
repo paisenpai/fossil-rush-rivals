@@ -454,17 +454,34 @@ def main() -> None:
                 ax, ay = state.ai_pos
                 tx, ty = state.ai_target_pos
                 if (ax, ay) != (tx, ty) and now >= state.ai_move_cooldown_until:
-                    step_x = 0 if ax == tx else (1 if tx > ax else -1)
-                    step_y = 0 if ay == ty else (1 if ty > ay else -1)
-                    next_x = ax + step_x
-                    next_y = ay + step_y
-                    if _can_move_to("ai", next_x, next_y):
+                    def _bfs_next_step(start_x, start_y, goal_x, goal_y):
+                        queue = [(start_x, start_y)]
+                        came_from = {(start_x, start_y): None}
+                        offsets = [(0, -1), (1, 0), (0, 1), (-1, 0)]
+                        while queue:
+                            cx, cy = queue.pop(0)
+                            if (cx, cy) == (goal_x, goal_y):
+                                curr = (cx, cy)
+                                while came_from[curr] != (start_x, start_y):
+                                    curr = came_from[curr]
+                                return curr
+                            for dx, dy in offsets:
+                                nx, ny = cx + dx, cy + dy
+                                if (nx, ny) not in came_from and (_can_move_to("ai", nx, ny) or (nx, ny) == (goal_x, goal_y)):
+                                    came_from[(nx, ny)] = (cx, cy)
+                                    queue.append((nx, ny))
+                        return start_x, start_y
+                    
+                    next_x, next_y = _bfs_next_step(ax, ay, tx, ty)
+
+                    if (next_x, next_y) != (ax, ay):
                         state.ai_pos = (next_x, next_y)
-                        state.ai_facing = _direction_from_delta(step_x, step_y)
+                        state.ai_facing = _direction_from_delta(next_x - ax, next_y - ay)
                         state.ai_last_move_ticks = now
                         state.ai_move_cooldown_until = now + config.MOVE_COOLDOWN_MS
                     else:
                         state.ai_target_pos = None
+                        state.ai_target_action = None
                 elif (ax, ay) == (tx, ty) and state.ai_target_action:
                     action_key = state.ai_target_action
                     if now >= state.ai_action_cooldown_until:
