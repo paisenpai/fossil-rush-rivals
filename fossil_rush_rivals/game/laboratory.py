@@ -39,6 +39,29 @@ def apply_lab_focus(fossil: Fossil, focus: str, rng) -> str:
 def choose_ai_focus_for_fossil(fossil: Fossil, rng, market_trend: str) -> str:
 	if fossil.condition < 0.7:
 		return config.LAB_RESTORE
+	trend = market_trend or ""
+	if trend == "Fraud Panic":
+		if fossil.authenticity != "verified":
+			return config.LAB_AUTHENTICATE
+		if fossil.condition < 0.85:
+			return config.LAB_RESTORE
+		return config.LAB_SHOWCASE
+	if trend == "Research Grant":
+		if fossil.authenticity != "verified":
+			return config.LAB_AUTHENTICATE
+		if fossil.condition < 0.85:
+			return config.LAB_RESTORE
+		return config.LAB_SHOWCASE
+	if trend == "Collector Craze":
+		if fossil.verified:
+			return config.LAB_SHOWCASE
+		if fossil.condition >= 0.8:
+			return config.LAB_AUTHENTICATE
+		return config.LAB_RESTORE
+	if fossil.verified and fossil.condition >= 0.8:
+		return config.LAB_SHOWCASE
 	if fossil.authenticity != "verified":
 		return config.LAB_AUTHENTICATE
+	if fossil.condition < 0.85:
+		return config.LAB_RESTORE
 	return config.LAB_SHOWCASE

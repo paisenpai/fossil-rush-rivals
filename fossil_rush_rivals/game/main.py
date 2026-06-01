@@ -510,6 +510,7 @@ def main() -> None:
             if state.excavation_countdown_done and now >= state.ai_next_think_at:
                 move_window = config.AI_THINK_INTERVAL_RANGE_MS
                 state.ai_next_think_at = now + state.rng.randint(move_window[0], move_window[1])
+                ai_move_cooldown = config.MOVE_COOLDOWN_MS + config.AI_MOVE_BUFFER_MS
                 choice = choose_action(
                     state.grid,
                     "ai",
@@ -520,7 +521,7 @@ def main() -> None:
                     time_left_ms=state.excavation_time_left_ms,
                     actor_pos=state.ai_pos,
                     actor_facing=state.ai_facing,
-                    actor_is_moving=(now - state.ai_last_move_ticks) < config.MOVE_COOLDOWN_MS,
+                    actor_is_moving=(now - state.ai_last_move_ticks) < ai_move_cooldown,
                     player_pos=state.player_pos,
                 )
                 if choice:
@@ -560,7 +561,7 @@ def main() -> None:
                         state.ai_pos = (next_x, next_y)
                         state.ai_facing = _direction_from_delta(next_x - ax, next_y - ay)
                         state.ai_last_move_ticks = now
-                        state.ai_move_cooldown_until = now + config.MOVE_COOLDOWN_MS
+                        state.ai_move_cooldown_until = now + ai_move_cooldown
                     else:
                         state.ai_target_pos = None
                         state.ai_target_action = None
