@@ -338,21 +338,9 @@ def main() -> None:
                             _play_sfx("invalid")
                 elif state.phase == config.PHASE_DIG_COMPLETE:
                     if event.key == pygame.K_RETURN:
-                        if state.timeup_popup_started_at == 0:
-                            state.timeup_popup_started_at = pygame.time.get_ticks()
-                        popup_duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
-                        if pygame.time.get_ticks() - state.timeup_popup_started_at < popup_duration:
-                            continue
-                        # Now set up the lab phase
-                        state.phase = config.PHASE_LAB
-                        state.bg_key = "lab_afternoon"
-                        state.narration = "Choose a Lab Focus."
-                        if not state.market_trend:
-                            state.market_trend = state.rng.choice(MARKET_TRENDS)
-                        state.lab_substate = config.LAB_SUB_CHOOSE_FOCUS
-                        state.lab_processed_player = []
-                        state.lab_selected_fossil_index = 0
-                        state.lab_ai_results = []
+                        if not state.timeup_proceed_pressed:
+                            state.timeup_proceed_pressed = True
+                            state.timeup_proceed_at = pygame.time.get_ticks()
                         state.lab_focus_player = {}
                         state.lab_focus_ai = {}
                         player_fossils = list_owned_fossils(state.fossils, "player")
@@ -632,6 +620,8 @@ def main() -> None:
                 state.phase = config.PHASE_DIG_COMPLETE
                 state.narration = ""
                 state.timeup_popup_started_at = 0
+                state.timeup_proceed_pressed = False
+                state.timeup_proceed_at = 0
                 state.market_final_sfx_played = False
 
         bg_sprite = sprites.get_background_sprite(state.bg_key)
@@ -699,16 +689,8 @@ def main() -> None:
             if state.phase == config.PHASE_EXCAVATION:
                 draw_excavation_hud(screen, label_font, state)
             else:
-                # Overlay the dig-complete announcement on top of the frozen grid
-                show_prompt = False
-                if state.timeup_popup_started_at == 0:
-                    state.timeup_popup_started_at = pygame.time.get_ticks()
-                popup_duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
-                if pygame.time.get_ticks() - state.timeup_popup_started_at >= popup_duration:
-                    show_prompt = True
-                draw_dig_complete_screen(screen, label_font, show_prompt)
-                # Redraw the header on top of the overlay so "Dig Site Closed" remains visible
-                draw_header(screen, title_font, label_font, state.phase)
+                # Overlay the dig-complete dimming on top of the frozen grid
+                draw_dig_complete_screen(screen, label_font, False)
             
             if state.is_paused:
                 pause_resume_btn, pause_retry_btn, pause_quit_btn = draw_pause_menu(screen, title_font, label_font)
@@ -778,16 +760,33 @@ def main() -> None:
         elif state.phase == config.PHASE_DIG_COMPLETE:
             if state.timeup_popup_started_at == 0:
                 state.timeup_popup_started_at = now
-            elapsed = now - state.timeup_popup_started_at
-            duration = config.POPUP_FADE_IN_MS + config.POPUP_HOLD_MS + config.POPUP_FADE_OUT_MS
-            if elapsed < duration:
+            
+            if not state.timeup_proceed_pressed:
+                # Fade in and hold
                 popup_sprite = sprites.get_popup_sprite("countdown_timesup")
-                popup_alpha = _popup_alpha(
-                    elapsed,
-                    duration,
-                    config.POPUP_FADE_IN_MS,
-                    config.POPUP_FADE_OUT_MS,
-                )
+                elapsed = now - state.timeup_popup_started_at
+                if elapsed < config.POPUP_FADE_IN_MS:
+                    popup_alpha = int((elapsed / config.POPUP_FADE_IN_MS) * 255)
+                else:
+                    popup_alpha = 255
+            else:
+                # Fade out after pressing Enter
+                fade_elapsed = now - state.timeup_proceed_at
+                if fade_elapsed < config.POPUP_FADE_OUT_MS:
+                    popup_sprite = sprites.get_popup_sprite("countdown_timesup")
+                    popup_alpha = int((1.0 - (fade_elapsed / config.POPUP_FADE_OUT_MS)) * 255)
+                else:
+                    # Transition to Lab phase
+                    popup_alpha = 0
+                    state.phase = config.PHASE_LAB
+                    state.bg_key = "lab_afternoon"
+                    state.narration = "Choose a Lab Focus."
+                    if not state.market_trend:
+                        state.market_trend = state.rng.choice(MARKET_TRENDS)
+                    state.lab_substate = config.LAB_SUB_CHOOSE_FOCUS
+                    state.lab_processed_player = []
+                    state.lab_selected_fossil_index = 0
+                    state.lab_ai_results = []
         elif state.phase == config.PHASE_MARKET and state.market_substate == config.MARKET_SUB_INTRO:
             if state.market_popup_started_at == 0:
                 state.market_popup_started_at = now

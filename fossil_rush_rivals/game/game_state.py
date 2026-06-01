@@ -74,6 +74,8 @@ class GameState:
     excavation_countdown_done: bool
     market_popup_started_at: int
     timeup_popup_started_at: int
+    timeup_proceed_pressed: bool
+    timeup_proceed_at: int
     last_player_emotion: str
     market_final_sfx_played: bool
 
@@ -154,6 +156,8 @@ def create_game_state(start_in_title: bool = True) -> GameState:
         excavation_countdown_done=False,
         market_popup_started_at=0,
         timeup_popup_started_at=0,
+        timeup_proceed_pressed=False,
+        timeup_proceed_at=0,
         last_player_emotion="Focused",
         market_final_sfx_played=False,
     )
