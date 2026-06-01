@@ -39,19 +39,24 @@ class Fossil:
 
 SET_PIECES = {
     "triceratops_display": [
-        ("set_trike_horn", "Triceratops Horn Core"),
-        ("set_trike_frill", "Triceratops Frill Fragment"),
-        ("set_trike_tooth", "Triceratops Tooth"),
+        ("set_triceratops_torso", "Triceratops Torso"),
+        ("set_triceratops_skull", "Triceratops Skull"),
+        ("set_triceratops_tail", "Triceratops Tail"),
     ],
     "marine_predator": [
         ("set_mosasaur_tooth", "Mosasaur Tooth"),
-        ("set_mosasaur_vertebra", "Mosasaur Vertebra"),
-        ("set_mosasaur_paddle", "Mosasaur Paddle Bone"),
+        ("set_mosasaur_torso", "Mosasaur Torso"),
+        ("set_mosasaur_skull", "Mosasaur Skull"),
     ],
     "ice_age_mammoth": [
         ("set_mammoth_molar", "Mammoth Molar"),
-        ("set_mammoth_tusk", "Mammoth Tusk Fragment"),
-        ("set_mammoth_leg", "Mammoth Leg Bone"),
+        ("set_mammoth_skull", "Mammoth Skull"),
+        ("set_mammoth_torso", "Mammoth Torso"),
+    ],
+    "apex_predator": [
+        ("set_trex_skull", "T-Rex Skull"),
+        ("set_trex_torso", "T-Rex Torso"),
+        ("set_trex_feet", "T-Rex Feet"),
     ],
 }
 

@@ -72,21 +72,21 @@ FOSSIL_FACTS = {
         "restoration_notes": "Consolidant improves durability without altering shape.",
         "showcase_notes": "Pair with comparative samples for clarity.",
     },
-    "set_trike_horn": {
+    "set_triceratops_torso": {
         "description": "Horn core fragment from a Triceratops display set.",
         "facts": "Horns were likely used for display and defense.",
         "year_discovered": "1888",
         "restoration_notes": "Horn texture stands out after careful dusting.",
         "showcase_notes": "Best paired with the frill fragment.",
     },
-    "set_trike_frill": {
+    "set_triceratops_skull": {
         "description": "Frill fragment with distinctive bony ridges.",
         "facts": "Frills may have served for species recognition.",
         "year_discovered": "1889",
         "restoration_notes": "Ridge edges are delicate and need support.",
         "showcase_notes": "Ridge silhouette reads well in profile.",
     },
-    "set_trike_tooth": {
+    "set_triceratops_tail": {
         "description": "Tooth fragment from a Triceratops set piece.",
         "facts": "Triceratops teeth were built for grinding plants.",
         "year_discovered": "1890",
@@ -100,14 +100,14 @@ FOSSIL_FACTS = {
         "restoration_notes": "Keep serrations intact to preserve detail.",
         "showcase_notes": "Contrasting backdrop highlights tooth shape.",
     },
-    "set_mosasaur_vertebra": {
+    "set_mosasaur_torso": {
         "description": "Vertebra fragment from a marine predator set.",
         "facts": "Mosasaur spines supported powerful swimming.",
         "year_discovered": "1770",
         "restoration_notes": "Rings are stable but need crack monitoring.",
         "showcase_notes": "Displays well with scale markers.",
     },
-    "set_mosasaur_paddle": {
+    "set_mosasaur_skull": {
         "description": "Paddle bone fragment from a mosasaur set.",
         "facts": "Paddles were stiffened by dense bone.",
         "year_discovered": "1784",
@@ -121,19 +121,40 @@ FOSSIL_FACTS = {
         "restoration_notes": "Ridges collect debris and need light cleaning.",
         "showcase_notes": "Ridged surface looks striking in close-up.",
     },
-    "set_mammoth_tusk": {
+    "set_mammoth_skull": {
         "description": "Curved tusk fragment from an ice age mammoth.",
         "facts": "Tusk growth rings record seasonal changes.",
         "year_discovered": "1799",
         "restoration_notes": "Avoid heavy polishing to preserve growth rings.",
         "showcase_notes": "Curvature pairs well with leg bone fragment.",
     },
-    "set_mammoth_leg": {
+    "set_mammoth_torso": {
         "description": "Leg bone fragment from a mammoth set piece.",
         "facts": "Mammoth limb bones were dense and load-bearing.",
         "year_discovered": "1801",
         "restoration_notes": "Surface consolidation improves structural integrity.",
         "showcase_notes": "Scale comparisons help emphasize size.",
+    },
+    "set_trex_skull": {
+        "description": "Large skull fragment from a Tyrannosaurus Rex.",
+        "facts": "T-Rex skulls had a powerful bite force.",
+        "year_discovered": "1902",
+        "restoration_notes": "Fragile bone structures require careful stabilization.",
+        "showcase_notes": "Displays best with jaws open for maximum effect.",
+    },
+    "set_trex_torso": {
+        "description": "Vertebra fragment from a Tyrannosaurus Rex.",
+        "facts": "T-Rex spines were robust to support massive weight.",
+        "year_discovered": "1905",
+        "restoration_notes": "Keep vertebrae aligned properly.",
+        "showcase_notes": "Great for demonstrating sheer scale.",
+    },
+    "set_trex_feet": {
+        "description": "Foot bone fragment from a Tyrannosaurus Rex.",
+        "facts": "T-Rex feet had three large forward-facing toes.",
+        "year_discovered": "1902",
+        "restoration_notes": "Claw tips are fragile.",
+        "showcase_notes": "Place near base to emphasize ground impact.",
     },
 }
 
@@ -176,6 +197,8 @@ def _set_display_name(set_id: str) -> str:
         return "Marine Predator Set"
     if set_id == "ice_age_mammoth":
         return "Ice Age Mammoth Set"
+    if set_id == "apex_predator":
+        return "Apex Predator Set"
     return set_id.replace("_", " ").title()
 
 

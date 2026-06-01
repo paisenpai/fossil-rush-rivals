@@ -31,7 +31,7 @@
       "facts": "Coprolites reveal diet details of extinct animals.",
       "authenticated": true
     },
-    "set_trike_horn": {
+    "set_triceratops_torso": {
       "name": "Triceratops Horn Core",
       "code": "THC",
       "discovered": 1,
@@ -47,7 +47,7 @@
       "facts": "Fragments can identify larger animals through microstructure.",
       "authenticated": true
     },
-    "set_trike_frill": {
+    "set_triceratops_skull": {
       "name": "Triceratops Frill Fragment",
       "description": "Frill fragment with distinctive bony ridges.",
       "discovered": 1,
@@ -56,7 +56,7 @@
       "facts": "Frills may have served for species recognition.",
       "authenticated": true
     },
-    "set_mosasaur_paddle": {
+    "set_mosasaur_skull": {
       "name": "Mosasaur Paddle Bone",
       "description": "Paddle bone fragment from a mosasaur set.",
       "discovered": 1,
@@ -99,7 +99,7 @@
       "facts": "Petrified wood forms when minerals replace organic tissue.",
       "authenticated": true
     },
-    "set_trike_tooth": {
+    "set_triceratops_tail": {
       "name": "Triceratops Tooth",
       "description": "Tooth fragment from a Triceratops set piece.",
       "discovered": 1,

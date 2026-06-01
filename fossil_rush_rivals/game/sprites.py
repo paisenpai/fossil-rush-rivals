@@ -135,11 +135,13 @@ def load_sprites() -> None:
     # Load Items (fossils and terrain/decoy)
     item_files = [
         # Set A
-        "set_trike_horn", "set_trike_frill", "set_trike_tooth",
+        "set_triceratops_torso", "set_triceratops_skull", "set_triceratops_tail",
         # Set B
-        "set_mosasaur_tooth", "set_mosasaur_vertebra", "set_mosasaur_paddle",
+        "set_mosasaur_tooth", "set_mosasaur_torso", "set_mosasaur_skull",
         # Set C
-        "set_mammoth_molar", "set_mammoth_tusk", "set_mammoth_leg",
+        "set_mammoth_molar", "set_mammoth_skull", "set_mammoth_torso",
+        # Set Trex
+        "set_trex_skull", "set_trex_torso", "set_trex_feet",
         # Standalones
         "fossil_ammonite", "fossil_trilobite", "fossil_shark_tooth",
         "fossil_fern", "fossil_wood", "fossil_brachiopod",
